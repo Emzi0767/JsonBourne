@@ -7,7 +7,7 @@
 <p align="center">
 	<a href="https://ci.appveyor.com/project/Emzi0767/jsonbourne"><img src="https://img.shields.io/appveyor/ci/Emzi0767/jsonbourne.svg?style=for-the-badge" alt="AppVeyor build status"></a>
 	<a href="https://nuget.org/packages/JsonBourne"><img src="https://img.shields.io/nuget/v/JsonBourne.svg?style=for-the-badge&label=NuGet" alt="NuGet"></a>
-	<a href="https://nuget.emzi0767.com/gallery/package/JsonBourne"><img src="https://img.shields.io/badge/dynamic/json.svg?color=yellow&label=slimget&query=%24.items%5B-1%3A%5D.upper&url=https%3A%2F%2Fnuget.emzi0767.com%2Fapi%2Fv3%2Fregistration%2FPlain%2Fjsonbourne%2Findex.json" alt="MyGet"></a>
+	<a href="https://nuget.emzi0767.com/gallery/package/JsonBourne"><img src="https://img.shields.io/badge/dynamic/json.svg?color=yellow&style=for-the-badge&label=slimget&query=%24.items%5B-1%3A%5D.upper&url=https%3A%2F%2Fnuget.emzi0767.com%2Fapi%2Fv3%2Fregistration%2FPlain%2Fjsonbourne%2Findex.json" alt="MyGet"></a>
 	<a href="https://discord.gg/DWyBvSJ"><img src="https://img.shields.io/discord/501893215025364992.svg?style=for-the-badge&label=Discord" alt="Discord"></a>
 </p>
 
