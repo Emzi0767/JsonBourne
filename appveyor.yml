@@ -1,0 +1,78 @@
+version: 1.0.0-nightly-{build}
+pull_requests:
+  do_not_increment_build_number: true
+branches:
+  only:
+  - master
+skip_tags: false
+max_jobs: 1
+image: Visual Studio 2019
+clone_depth: 1
+build_script:
+- ps: |-
+    # Version number
+    $VERSION = [int]::Parse($Env:APPVEYOR_BUILD_NUMBER).ToString("00000")
+
+    # Branch
+    $BRANCH = "$Env:APPVEYOR_REPO_BRANCH"
+    $Env:DOCFX_SOURCE_BRANCH_NAME = "$BRANCH"
+
+    # Output directory
+    $Env:ARTIFACT_DIR = ".\artifacts"
+    $dir = New-Item -type directory $env:ARTIFACT_DIR
+    $dir = $dir.FullName
+
+    # Verbosity
+    Write-Host "Build: $VERSION / Branch: $BRANCH"
+    Write-Host "Artifacts will be placed in: $dir"
+
+    # Check if this is a PR
+    if (-not $Env:APPVEYOR_PULL_REQUEST_NUMBER)
+    {
+        # Rebuild documentation
+        Write-Host "Commencing complete build"
+        if ($Env:APPVEYOR_REPO_TAG)
+        {
+            & .\build\rebuild-all.ps1 -ArtifactLocation "$dir" -Configuration "Release" -VersionSuffix "nightly" -BuildNumber $VERSION -DocsPath ".\docs" -DocsPackageName "jsonbourne-docs"
+        }
+        else
+        {
+            & .\build\rebuild-all.ps1 -ArtifactLocation "$dir" -Configuration "Release" -DocsPath ".\docs" -DocsPackageName "jsonbourne-docs"
+        }
+    }
+    else
+    {
+        # Skip documentation
+        Write-Host "Building from PR ($Env:APPVEYOR_PULL_REQUEST_NUMBER); skipping docs build"
+        & .\build\rebuild-all.ps1 -ArtifactLocation "$dir" -Configuration "Release" -VersionSuffix "nightly" -BuildNumber $VERSION
+    }
+test_script:
+- ps: |-
+    # Run all tests
+    & .\build\test-all.ps1
+artifacts:
+- path: artifacts\*.nupkg
+- path: artifacts\jsonbourne-docs.tar.xz
+notifications:
+- provider: Slack
+  incoming_webhook:
+    secure: z4bpoeWztbUGxF4yxdUMUjU9XFR2JNtrCdCmiG7Ri7waqDSkgUXjwHpTzRJmMn3t4Vy/E86ctM9avm3qnwGTQyVvQScuXTau0CWNZnFIrFOLe6hzQaETO5U4c8fYOM1oafwrxXrPtRwTlnp8ZxJkKI6Yh2P6IRuAF63rdM+mhbMBNd2nqlMjvdeuoJB/t81U
+  channel: appveyor
+  on_build_success: true
+  on_build_failure: true
+  on_build_status_changed: false
+deploy:
+- provider: NuGet
+  server: https://nuget.emzi0767.com/api/v2/package
+  symbol_server: https://nuget.emzi0767.com/api/v2/symbolpackage
+  api_key:
+    secure: YYfz+1R25nTvcIYepubwdH4YR1v3sgzvD/0kFqiOhOlCoX5tJ5F0Ucl9RphZDKzbHQUwSNQlldRyWtgbwLj658kaf/amngZdMgCmv46xnaWQ7QQj9gDz/SwlFiK0oZj0V9FIir2Wme13E/DbGM/41w==
+  on:
+    APPVEYOR_REPO_TAG: false
+- provider: NuGet
+  server:
+  symbol_server:
+  api_key:
+    secure: JZ1ffRiXdhhItohVSj98iTEheIBf/9ZiRwhBvqZHUClsGh9sRjHNg/5UDXHfNFI7
+  on:
+    APPVEYOR_REPO_TAG: true

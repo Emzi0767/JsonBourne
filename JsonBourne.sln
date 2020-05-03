@@ -1,0 +1,81 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30011.22
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JsonBourne", "src\JsonBourne\JsonBourne.csproj", "{E173D7B3-CB00-45D1-BFC9-CE0C4B969868}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{34E06BF6-CE19-4BC0-BC0F-36FA68751983}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{84A30717-CA6F-46F7-80B0-C4C2D8581393}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JsonBourne.Tests", "tests\JsonBourne.Tests\JsonBourne.Tests.csproj", "{6FAD13BE-076E-4788-A416-3FD0B9D55DA6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JsonBourne.Benchmark", "tests\JsonBourne.Benchmark\JsonBourne.Benchmark.csproj", "{E7782312-E13F-47D5-AD11-23A303B595FD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "github", "github", "{2966DDB3-47F6-4EA5-85C5-6A7026DC76BF}"
+	ProjectSection(SolutionItems) = preProject
+		BUILDING.MD = BUILDING.MD
+		LICENSE.TXT = LICENSE.TXT
+		NOTICE.TXT = NOTICE.TXT
+		README.MD = README.MD
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{FB0E5CE9-5BCA-40FD-92FA-621989E587E7}"
+	ProjectSection(SolutionItems) = preProject
+		appveyor.yml = appveyor.yml
+		build\oneclick-rebuild.ps1 = build\oneclick-rebuild.ps1
+		build\rebuild-all.ps1 = build\rebuild-all.ps1
+		build\rebuild-docs.ps1 = build\rebuild-docs.ps1
+		build\rebuild-lib.ps1 = build\rebuild-lib.ps1
+		build\rebuild-linux.ps1 = build\rebuild-linux.ps1
+		build\test-all.ps1 = build\test-all.ps1
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "meta", "meta", "{B9703FF9-EF21-436E-839C-94123FFEFA2A}"
+	ProjectSection(SolutionItems) = preProject
+		.github\CODE_OF_CONDUCT.MD = .github\CODE_OF_CONDUCT.MD
+		.github\CONTRIBUTING.MD = .github\CONTRIBUTING.MD
+		.github\PULL_REQUEST_TEMPLATE.MD = .github\PULL_REQUEST_TEMPLATE.MD
+		.github\SUPPORT.MD = .github\SUPPORT.MD
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "issues", "issues", "{FB272C5A-4A0A-49E7-9904-989BD99AA467}"
+	ProjectSection(SolutionItems) = preProject
+		.github\ISSUE_TEMPLATE\BUG_REPORT.MD = .github\ISSUE_TEMPLATE\BUG_REPORT.MD
+		.github\ISSUE_TEMPLATE\FEATURE_REQUEST.MD = .github\ISSUE_TEMPLATE\FEATURE_REQUEST.MD
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E173D7B3-CB00-45D1-BFC9-CE0C4B969868}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E173D7B3-CB00-45D1-BFC9-CE0C4B969868}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E173D7B3-CB00-45D1-BFC9-CE0C4B969868}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E173D7B3-CB00-45D1-BFC9-CE0C4B969868}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6FAD13BE-076E-4788-A416-3FD0B9D55DA6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6FAD13BE-076E-4788-A416-3FD0B9D55DA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6FAD13BE-076E-4788-A416-3FD0B9D55DA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6FAD13BE-076E-4788-A416-3FD0B9D55DA6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E7782312-E13F-47D5-AD11-23A303B595FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E7782312-E13F-47D5-AD11-23A303B595FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E7782312-E13F-47D5-AD11-23A303B595FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E7782312-E13F-47D5-AD11-23A303B595FD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E173D7B3-CB00-45D1-BFC9-CE0C4B969868} = {34E06BF6-CE19-4BC0-BC0F-36FA68751983}
+		{6FAD13BE-076E-4788-A416-3FD0B9D55DA6} = {84A30717-CA6F-46F7-80B0-C4C2D8581393}
+		{E7782312-E13F-47D5-AD11-23A303B595FD} = {84A30717-CA6F-46F7-80B0-C4C2D8581393}
+		{B9703FF9-EF21-436E-839C-94123FFEFA2A} = {2966DDB3-47F6-4EA5-85C5-6A7026DC76BF}
+		{FB272C5A-4A0A-49E7-9904-989BD99AA467} = {B9703FF9-EF21-436E-839C-94123FFEFA2A}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1F005DFB-3EA5-486D-B2CC-CEA0F2C76284}
+	EndGlobalSection
+EndGlobal
