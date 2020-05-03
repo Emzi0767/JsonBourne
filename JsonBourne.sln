@@ -15,6 +15,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JsonBourne.Benchmark", "tes
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "github", "github", "{2966DDB3-47F6-4EA5-85C5-6A7026DC76BF}"
 	ProjectSection(SolutionItems) = preProject
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
 		BUILDING.MD = BUILDING.MD
 		LICENSE.TXT = LICENSE.TXT
 		NOTICE.TXT = NOTICE.TXT
@@ -23,6 +25,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "github", "github", "{2966DD
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{FB0E5CE9-5BCA-40FD-92FA-621989E587E7}"
 	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
 		appveyor.yml = appveyor.yml
 		build\oneclick-rebuild.ps1 = build\oneclick-rebuild.ps1
 		build\rebuild-all.ps1 = build\rebuild-all.ps1
@@ -44,6 +47,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "issues", "issues", "{FB272C
 	ProjectSection(SolutionItems) = preProject
 		.github\ISSUE_TEMPLATE\BUG_REPORT.MD = .github\ISSUE_TEMPLATE\BUG_REPORT.MD
 		.github\ISSUE_TEMPLATE\FEATURE_REQUEST.MD = .github\ISSUE_TEMPLATE\FEATURE_REQUEST.MD
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{E953E1CF-AB37-49B0-829C-BCF021A84240}"
+	ProjectSection(SolutionItems) = preProject
+		examples\01 - Basics.cs = examples\01 - Basics.cs
 	EndProjectSection
 EndProject
 Global
