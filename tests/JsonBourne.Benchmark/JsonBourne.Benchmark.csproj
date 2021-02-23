@@ -23,12 +23,12 @@
     <AssemblyName>JsonBourne.Benchmark</AssemblyName>
     <RootNamespace>JsonBourne</RootNamespace>
     <VersionPrefix>1.0.0</VersionPrefix>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>9.0</LangVersion>
     <Optimize>True</Optimize>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <DebugType>Portable</DebugType>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <IsPackable>False</IsPackable>
   </PropertyGroup>
 

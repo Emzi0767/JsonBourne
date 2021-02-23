@@ -23,12 +23,12 @@
     <AssemblyName>JsonBourne</AssemblyName>
     <RootNamespace>JsonBourne</RootNamespace>
     <VersionPrefix>0.0.0</VersionPrefix>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>9.0</LangVersion>
     <Optimize>True</Optimize>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <DebugType>Portable</DebugType>
     <OutputType>Library</OutputType>
-    <TargetFrameworks>netcoreapp3.0</TargetFrameworks>
+    <TargetFrameworks>net5.0</TargetFrameworks>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -36,7 +36,7 @@
     <Description>
       Jesus Christ it's JSON Bourne! A UTF-8 JSON serializer and deserializer!
 
-      JSON Bourne is a .NET Core 3.0-compatible JSON serializer and deserializer designed to work with UTF-8 JSON data directly. The library aims to provide easy-to-use high-performance API.
+      JSON Bourne is a .NET 5-compatible JSON serializer and deserializer designed to work with UTF-8 JSON data directly. The library aims to provide easy-to-use high-performance API with multitude of features.
     </Description>
     <PackageTags>emzi0767 json dotnet dotnet-core dotnetfx netfx netcore csharp</PackageTags>
     <Authors>Emzi0767</Authors>
@@ -65,7 +65,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Emzi0767.Common" Version="2.1.1" />
+    <PackageReference Include="Emzi0767.Common" Version="2.4.1" />
   </ItemGroup>
 
 </Project>

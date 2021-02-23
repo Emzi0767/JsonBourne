@@ -23,11 +23,12 @@
     <AssemblyName>JsonBourne.Tests</AssemblyName>
     <RootNamespace>JsonBourne</RootNamespace>
     <VersionPrefix>1.0.0</VersionPrefix>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>9.0</LangVersion>
     <Optimize>True</Optimize>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <DebugType>Portable</DebugType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
+    <NoWarn>1591</NoWarn>
 
     <IsPackable>False</IsPackable>
   </PropertyGroup>
