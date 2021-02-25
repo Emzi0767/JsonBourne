@@ -11,13 +11,12 @@
 	<a href="https://discord.gg/DWyBvSJ"><img src="https://img.shields.io/discord/501893215025364992.svg?style=for-the-badge&label=Discord" alt="Discord"></a>
 </p>
 
-JSON Bourne is a .NET Core 3.0-compatible JSON serializer and deserializer designed to work with UTF-8 JSON data 
-directly. The library aims to provide easy-to-use high-performance API.
+JSON Bourne is a .NET 5-compatible JSON serializer and deserializer designed to work with UTF-8 JSON data 
+directly. The library aims to provide powerful, but easy-to-use API.
 
 ## Requirements
-The library is built for .NET Core 3.0. It is therefore required that you have .NET Core SDK 3.0 or better installed. 
-I recommend Visual Studio 2019 (version 16.5 or newer) for your IDE. If you are on Linux, Visual Studio Code is my 
-recommendation.
+The library is built for .NET 5. It is therefore required that you have .NET 5 SDK or better installed. I recommend
+Visual Studio 2019 (version 16.8 or newer) for your IDE. If you are on Linux, Visual Studio Code is my recommendation.
 
 You are required to know C# on at least intermediate level before attempting to use the library. I will not take any 
 time to explain language basics to you, and if you come to me without understanding the language, I will simply 

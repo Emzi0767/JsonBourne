@@ -8,17 +8,17 @@ MSBuild.
 In order to build the library, you will first need to install some software.
 
 ### Windows
-On Windows, only Visual Studio 2019 16.4 or newer is supported. Visual Studio Code and other IDEs might work, but will 
+On Windows, only Visual Studio 2019 16.8 or newer is supported. Visual Studio Code and other IDEs might work, but will 
 receive no support from me.
 
 * **Windows 10** - The instructions below were only ever tested with Windows 10.
 * [**Git for Windows**](https://git-scm.com/download/win) - required to clone the repository.
-* [**Visual Studio 2019**](https://visualstudio.com/downloads/) - community edition or better. Visual Studio 2015 and 
-  older are not supported and will not work. Note that to build the library, you need Visual Studio 2019 version 16.4 
+* [**Visual Studio 2019**](https://visualstudio.com/downloads/) - community edition or better. Visual Studio 2017 and 
+  older are not supported and will not work. Note that to build the library, you need Visual Studio 2019 version 16.8 
   or newer.
    * **Workloads**:
       * **.NET Core Cross-Platform Development** - required to build .NET Core and .NET Standard projects.
-* [**.NET Core SDK 3.0**](https://www.microsoft.com/net/download) - required to build the project.
+* [**.NET 5 SDK**](https://www.microsoft.com/net/download) - required to build the project.
 * **Windows PowerShell** - required to run the build scripts. You need to make sure your script execution policy 
   allows execution of unsigned scripts.
 
@@ -35,7 +35,7 @@ as a Docker container in the future.
 * **Git** - to clone the repository.
 * [**Visual Studio Code**](https://code.visualstudio.com/Download) - a recent version is required.
    * **C# for Visual Studio Code (powered by OmniSharp)** - required for syntax highlighting and basic Intellisense
-* [**.NET Core SDK 3.0**](https://www.microsoft.com/net/download) - required to build the project.
+* [**.NET 5 SDK**](https://www.microsoft.com/net/download) - required to build the project.
 * [**Mono 5.x or better**](http://www.mono-project.com/download/#download-lin) - required to build the docs.
 * [**PowerShell Core**](https://docs.microsoft.com/en-us/powershell/scripting/setup/Installing-PowerShell-Core-on-macOS-and-Linux?view=powershell-6) - 
   required to execute the build scripts.
