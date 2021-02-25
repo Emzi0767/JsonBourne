@@ -93,5 +93,8 @@ namespace JsonBourne.DocumentModel
         // any whitespace
         // :
         ObjectKeyValueSeparator = Whitespace | KeyValueSeparator,
+
+        // EOF
+        EndOfStream = int.MaxValue
     }
 }

@@ -22,12 +22,11 @@ using System.Threading.Tasks;
 
 namespace JsonBourne.DocumentReader
 {
-    // This is a very simple unstructured reader. It takes a document and emits an event stream.
-    // The reader's position in the input stream can be manually advanced.
-    //
-    // The emitted events are passed to a structure/grammar-aware parser.
-
-    internal sealed class JsonDocumentReader
+    internal enum ValueParseResult
     {
+        Success,
+        Failure,
+        EOF,
+        Intederminate
     }
 }

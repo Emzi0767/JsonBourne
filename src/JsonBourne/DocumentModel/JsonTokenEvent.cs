@@ -18,12 +18,26 @@ namespace JsonBourne.DocumentModel
 {
     internal class JsonTokenEvent
     {
-        public JsonTokenType Type { get; set; }
+        public static JsonTokenEvent None { get; } = new JsonTokenEvent(JsonTokenType.None, null, 0, 0, 0);
+        public static JsonTokenEvent EOF { get; } = new JsonTokenEvent(JsonTokenType.EndOfStream, null, 0, 0, 0);
 
-        public int StreamPosition { get; set; }
+        public JsonTokenType Type { get; }
 
-        public int Line { get; set; }
+        public int StreamPosition { get; }
 
-        public int Column { get; set; }
+        public int Line { get; }
+
+        public int Column { get; }
+
+        public object Value { get; }
+
+        public JsonTokenEvent(JsonTokenType type, object value, int streamPos, int col, int line)
+        {
+            this.Type = type;
+            this.Value = value;
+            this.StreamPosition = streamPos;
+            this.Column = col;
+            this.Line = line;
+        }
     }
 }
