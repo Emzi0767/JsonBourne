@@ -136,6 +136,7 @@ namespace JsonBourne.Tests
         [DataRow(null, "-e1\n")]
         [DataRow(null, "-.5\n")]
         [DataRow(null, "1.e2\n")]
+        [DataRow(132.0e7, "132", "E+07\n")]
         public void TestNumberParser(double? expected, params string[] buffers)
         {
             var reader = new JsonNumberReader();

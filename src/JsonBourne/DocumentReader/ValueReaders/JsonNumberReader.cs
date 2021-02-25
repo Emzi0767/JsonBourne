@@ -21,6 +21,8 @@ using JsonBourne.DocumentModel;
 
 namespace JsonBourne.DocumentReader
 {
+    // BEHOLD, MY MIGHTY STATE MACHINE COROUTINE
+
     internal sealed class JsonNumberReader : IJsonValueReader<double>
     {
         private MemoryBuffer Buffer { get; set; }
@@ -49,16 +51,21 @@ namespace JsonBourne.DocumentReader
             {
                 switch (readerSpan[consumedLength++])
                 {
+                    // a number in JSON can begin with - or digits 0-9
                     case JsonTokens.NumberSign:
                         this._currentStructure = NumberStructure.HasSign;
                         this._lastPart = NumberPart.NumberSign;
                         break;
 
+                    // digit zero is a bit special in that if it's the first digit in a number, it becomes the only
+                    // legal digit before decimal point, hence special handling for it
                     case JsonTokens.Digit0:
                         this._currentStructure = NumberStructure.LeadingZero;
                         this._lastPart = NumberPart.FirstDigit;
                         break;
 
+                    // digits 1-9 are also valid as starting characters of a number, and unlike 0, they do not
+                    // restrict pre-decimal point digit count (though IEEE754 64-bit binary float limits still apply)
                     case JsonTokens.Digit1:
                     case JsonTokens.Digit2:
                     case JsonTokens.Digit3:
@@ -72,6 +79,7 @@ namespace JsonBourne.DocumentReader
                         this._lastPart = NumberPart.FirstDigit;
                         break;
 
+                    // not a legal character
                     default:
                         return ValueParseResult.Failure;
                 }
@@ -88,6 +96,15 @@ namespace JsonBourne.DocumentReader
                 {
                     switch (readerSpan[consumedLength++])
                     {
+                        // digit 0 is special
+                        // if it's the first digit in the non-fractional part, it is the only legal digit before decimal point
+                        // otherwise it behaves like a regular digit
+                        // this means it can appear:
+                        // - as first digit before decimal point
+                        // - as non-first digit before decimal point, if first digit was not a 0
+                        // - as a digit after decimal point before exponent mark
+                        // - as a digit after exponent mark or exponent sign
+                        // see: https://www.json.org/img/number.png
                         case JsonTokens.Digit0:
                             if (this._lastPart == NumberPart.FirstDigit && this._currentStructure.HasFlag(NumberStructure.LeadingZero))
                                 return _cleanup(this, ValueParseResult.Failure);
@@ -109,6 +126,12 @@ namespace JsonBourne.DocumentReader
                             }
                             break;
 
+                        // non-0 digits can appear:
+                        // - as first digit before decimal points
+                        // - as non-first digit before decimal point, if first digit was not a 0
+                        // - as a digit after decimal point before exponent mark
+                        // - as a digit after exponent mark or exponent sign
+                        // see: https://www.json.org/img/number.png
                         case JsonTokens.Digit1:
                         case JsonTokens.Digit2:
                         case JsonTokens.Digit3:
@@ -138,6 +161,7 @@ namespace JsonBourne.DocumentReader
                             }
                             break;
 
+                        // decimal separator can appear only after at least one digit, and only once
                         case JsonTokens.DecimalSeparator:
                             if (this._lastPart != NumberPart.Digit && this._lastPart != NumberPart.FirstDigit)
                                 return _cleanup(this, ValueParseResult.Failure);
@@ -146,6 +170,8 @@ namespace JsonBourne.DocumentReader
                             this._lastPart = NumberPart.FractionDot;
                             break;
 
+                        // exponent marker can appear only after at least one digit, or at least one digit after
+                        // decimal point, and only once, regardless of variety
                         case JsonTokens.ExponentSmall:
                         case JsonTokens.ExponentCapital:
                             if (this._lastPart != NumberPart.FirstDigit && this._lastPart != NumberPart.Digit && this._lastPart != NumberPart.FractionDigit)
@@ -159,6 +185,7 @@ namespace JsonBourne.DocumentReader
 
                             break;
 
+                        // exponent sign can appear only after exponent marker
                         case JsonTokens.NumberSign:
                         case JsonTokens.ExponentSignPositive:
                             if (this._lastPart != NumberPart.ExponentMarker)
@@ -168,6 +195,9 @@ namespace JsonBourne.DocumentReader
                             this._lastPart = NumberPart.ExponentSign;
                             break;
 
+                        // this is a situation where a non number-character is encountered
+                        // this is invalid if immediately after number sign, decimal point, exponent marker, or
+                        // exponent sign, otherwise consider it a completed number
                         default:
                             switch (this._lastPart)
                             {
@@ -184,9 +214,12 @@ namespace JsonBourne.DocumentReader
                     }
                 }
 
+                // due to postincrement, at the end of the parsing process we are off by one
                 if (offByOne)
                     --consumedLength;
             }
+            // we got an empty buffer so we can assume this means EOF on underlying data source as well
+            // in practice this will only happen on JSON that consists of a number value only at the root
             else
             {
                 completedParsing = true;
@@ -196,6 +229,9 @@ namespace JsonBourne.DocumentReader
             var input = readerSpan;
             if (completedParsing)
             {
+                bool parseResult;
+                int expectedLength, buffConsumed;
+
                 // do we need a special buffer?
                 if (this.Buffer != null)
                 {
@@ -204,15 +240,20 @@ namespace JsonBourne.DocumentReader
                     this.Buffer.Read(buff, 0, out var written);
                     input.Slice(0, consumedLength).CopyTo(buff[written..]);
 
-                    var parseResult = Utf8Parser.TryParse(buff, out result, out var buffConsumed);
-                    return _cleanup(this, parseResult && buffConsumed == buff.Length ? ValueParseResult.Success : ValueParseResult.Failure);
+                    parseResult = Utf8Parser.TryParse(buff, out result, out buffConsumed);
+                    expectedLength = buff.Length;
                 }
+                // no, parse as-is
                 else
                 {
                     input = input.Slice(0, consumedLength);
-                    return Utf8Parser.TryParse(input, out result, out var buffConsumed) && buffConsumed == input.Length ? ValueParseResult.Success : ValueParseResult.Failure;
+                    parseResult = Utf8Parser.TryParse(input, out result, out buffConsumed);
+                    expectedLength = input.Length;
                 }
+
+                return _cleanup(this, parseResult && buffConsumed == expectedLength ? ValueParseResult.Success : ValueParseResult.Failure);
             }
+            // no, store state and yield back
             else
             {
                 if (this.Buffer == null)
