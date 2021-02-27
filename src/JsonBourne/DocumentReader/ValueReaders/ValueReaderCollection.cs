@@ -14,16 +14,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
-
 namespace JsonBourne.DocumentReader
 {
-    internal interface IJsonValueReader : IDisposable
-    { }
+    // this is so parsers can be reused - no point in destroying and creating them all over again
 
-    internal interface IJsonValueReader<T> : IJsonValueReader
+    internal sealed class ValueReaderCollection
     {
-        ValueParseResult TryParse(ReadOnlyMemory<byte> buffer, out T result, out int consumedLength, out int lineSpan, out int colSpan);
-        ValueParseResult TryParse(ReadOnlySpan<byte> buffer, out T result, out int consumedLength, out int lineSpan, out int colSpan);
+        public JsonNullReader NullReader { get; } = new JsonNullReader();
+        public JsonBooleanReader BooleanReader { get; } = new JsonBooleanReader();
+        public JsonNumberReader NumberReader { get; } = new JsonNumberReader();
+        public JsonStringReader StringReader { get; } = new JsonStringReader();
+
+        public ValueReaderCollection()
+        { }
     }
 }

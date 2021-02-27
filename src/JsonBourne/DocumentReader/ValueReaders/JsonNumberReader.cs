@@ -223,6 +223,10 @@ namespace JsonBourne.DocumentReader
                             completedParsing = true;
                             break;
                     }
+
+                    // if parsing is completed, do not attempt to resume
+                    if (completedParsing)
+                        break;
                 }
 
                 // due to postincrement, at the end of the parsing process we are off by one

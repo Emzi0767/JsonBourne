@@ -21,7 +21,7 @@ namespace JsonBourne.DocumentModel
     /// <summary>
     /// Represents a base JSON value.
     /// </summary>
-    public abstract class JsonValue
+    public abstract class JsonValue : IEquatable<bool>, IEquatable<string>, IEquatable<double>, IEquatable<long>, IEquatable<ulong>, IEquatable<int>, IEquatable<uint>, IEquatable<JsonValue>
     {
         /// <summary>
         /// Gets whether this value represents a null.
@@ -31,6 +31,124 @@ namespace JsonBourne.DocumentModel
 
         internal JsonValue()
         { }
+
+        /// <summary>
+        /// Checks whether the value of this JSON value is a boolean and equal to another boolean.
+        /// </summary>
+        /// <param name="other">Value to compare against.</param>
+        /// <returns>Whether the values are equal.</returns>
+        public bool Equals(bool other)
+            => this is JsonBooleanValue @bool && @bool.Value == other;
+
+        /// <summary>
+        /// Checks whether the value of this JSON value is a string and equal to another string.
+        /// </summary>
+        /// <param name="other">Value to compare against.</param>
+        /// <returns>Whether the values are equal.</returns>
+        public bool Equals(string other)
+            => this is JsonStringValue @string && @string.Value == other;
+
+        /// <summary>
+        /// Checks whether the value of this JSON value is a number and equal to another double.
+        /// </summary>
+        /// <param name="other">Value to compare against.</param>
+        /// <returns>Whether the values are equal.</returns>
+        public bool Equals(double other)
+            => this is JsonNumberValue number && number.Value == other;
+
+        /// <summary>
+        /// Checks whether the value of this JSON value is a number and equal to another long.
+        /// </summary>
+        /// <param name="other">Value to compare against.</param>
+        /// <returns>Whether the values are equal.</returns>
+        public bool Equals(long other)
+            => this is JsonNumberValue number && number.Value == other;
+
+        /// <summary>
+        /// Checks whether the value of this JSON value is a number and equal to another ulong.
+        /// </summary>
+        /// <param name="other">Value to compare against.</param>
+        /// <returns>Whether the values are equal.</returns>
+        public bool Equals(ulong other)
+            => this is JsonNumberValue number && number.Value == other;
+
+        /// <summary>
+        /// Checks whether the value of this JSON value is a number and equal to another int.
+        /// </summary>
+        /// <param name="other">Value to compare against.</param>
+        /// <returns>Whether the values are equal.</returns>
+        public bool Equals(int other)
+            => this is JsonNumberValue number && number.Value == other;
+
+        /// <summary>
+        /// Checks whether the value of this JSON value is a number and equal to another uint.
+        /// </summary>
+        /// <param name="other">Value to compare against.</param>
+        /// <returns>Whether the values are equal.</returns>
+        public bool Equals(uint other)
+            => this is JsonNumberValue number && number.Value == other;
+
+        /// <summary>
+        /// Checks whether the value of this JSON value is equal to that of another.
+        /// </summary>
+        /// <param name="other">JSON value to compare against.</param>
+        /// <returns>Whether the values are equal.</returns>
+        public bool Equals(JsonValue other)
+        {
+            if (other is null)
+                return false;
+
+            return other switch
+            {
+                JsonNullValue when this is JsonNullValue => true,
+                JsonBooleanValue right when this is JsonBooleanValue left => left.Value == right.Value,
+                JsonNumberValue right when this is JsonNumberValue left => left.Value == right.Value,
+                JsonStringValue right when this is JsonStringValue left => left.Value == right.Value,
+                JsonArrayValue right when this is JsonArrayValue left => left.Value.Equals(right.Value),
+                JsonObjectValue right when this is JsonObjectValue left => left.Value.Equals(right.Value),
+                _ => false,
+            };
+        }
+
+        /// <summary>
+        /// Checks whether the value of this JSON value is equal to value of another object.
+        /// </summary>
+        /// <param name="obj">Object to compare against.</param>
+        /// <returns>Whether the values are equal.</returns>
+        public override bool Equals(object obj)
+        {
+            switch (obj)
+            {
+                case null:
+                    return this.IsNull;
+
+                case JsonValue other:
+                    return this.Equals(other);
+
+                case bool b:
+                    return this.Equals(b);
+
+                case string s:
+                    return this.Equals(s);
+
+                case double f64:
+                    return this.Equals(f64);
+
+                case long i64:
+                    return this.Equals(i64);
+
+                case ulong u64:
+                    return this.Equals(u64);
+
+                case int i32:
+                    return this.Equals(i32);
+
+                case uint u32:
+                    return this.Equals(u32);
+            }
+
+            return false;
+        }
 
         /// <summary>
         /// Converts a JSON value to boolean, if possible.

@@ -285,5 +285,45 @@ namespace JsonBourne.Tests
 
             Assert.Inconclusive();
         }
+
+        [DataTestMethod]
+        [DataRow(new object[] { null, false, 1.5, true, -1.0, "😒" }, @"[null, false, 1.5, true, -1, ""😒""]")]
+        [DataRow(new object[] { null, false, 1.5, true, -1.0, "😒" }, @"[nu", @"ll, false, 1.5, true, -1, ""😒""]")]
+        [DataRow(new object[] { null, false, 1.5, true, -1.0, "😒" }, @"[nu", @"ll, fa", @"lse, 1.5, tr", @"ue, -1, """, @"😒""]")]
+        [DataRow(new object[] { null, false, 1.5, true, -1.0, "😒" }, @"[null, false, 1.5", @", true, -1, """, @"😒""]")]
+        [DataRow(new object[] { null, false, 1.5, true, -1.0, "😒" }, @"[null, false, 1.5, true, -1, ", @"""", @"😒""]")]
+        public void TestSimpleArrayParser(object[] expected, params string[] buffers)
+        {
+            var reader = new JsonArrayReader(new ValueReaderCollection());
+
+            var totalConsumed = 0;
+            foreach (var buffer in buffers)
+            {
+                var b = UTF8.GetBytes(buffer);
+
+                var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed, out _, out _);
+                totalConsumed += consumed;
+                switch (result.Type)
+                {
+                    case ValueParseResultType.Failure when expected != null:
+                        Assert.Fail("Failed to parse when failure was not expected.");
+                        return;
+
+                    case ValueParseResultType.Failure when expected == null:
+                        return;
+
+                    case ValueParseResultType.Success:
+                        Assert.AreEqual(expected.Length, actual.Length);
+                        Assert.IsTrue(actual.Select((x, i) => new { v = x, i }).All(x => x.v.Equals(expected[x.i])));
+                        return;
+
+                    case ValueParseResultType.EOF:
+                        Assert.AreEqual(b.Length, consumed);
+                        break;
+                }
+            }
+
+            Assert.Inconclusive();
+        }
     }
 }

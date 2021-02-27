@@ -41,8 +41,8 @@ namespace JsonBourne.DocumentReader
         {
             result = null;
             consumedLength = 0;
-            colSpan = 1;
-            lineSpan = 0;
+            lineSpan = 1;
+            colSpan = 0;
 
             // is input empty
             if (readerSpan.Length <= 0)
@@ -68,9 +68,11 @@ namespace JsonBourne.DocumentReader
             var tooSmall = readerSpan.Length < 4 - this._buffPos;
             if (tooSmall || this._buffPos > 0)
             {
-                readerSpan.CopyTo(this.Buffer.Span[this._buffPos..]);
-                this._buffPos += readerSpan.Length;
-                consumedLength = readerSpan.Length;
+                var tlen = Math.Min(4 - this._buffPos, readerSpan.Length);
+
+                readerSpan.Slice(0, tlen).CopyTo(this.Buffer.Span[this._buffPos..]);
+                this._buffPos += tlen;
+                consumedLength = tlen;
 
                 if (tooSmall)
                     return ValueParseResult.EOF;

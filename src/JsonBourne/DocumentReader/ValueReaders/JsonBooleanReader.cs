@@ -78,9 +78,11 @@ namespace JsonBourne.DocumentReader
             var tooSmall = readerSpan.Length < expectedLength - this._buffPos;
             if (tooSmall || this._buffPos > 0)
             {
-                readerSpan.CopyTo(this.Buffer.Span[this._buffPos..]);
-                this._buffPos += readerSpan.Length;
-                consumedLength = readerSpan.Length;
+                var tlen = Math.Min(expectedLength - this._buffPos, readerSpan.Length);
+
+                readerSpan.Slice(0, tlen).CopyTo(this.Buffer.Span[this._buffPos..]);
+                this._buffPos += tlen;
+                consumedLength = tlen;
 
                 if (tooSmall)
                     return ValueParseResult.EOF;
