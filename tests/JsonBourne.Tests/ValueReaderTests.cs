@@ -46,23 +46,23 @@ namespace JsonBourne.Tests
             {
                 var b = UTF8.GetBytes(buffer);
 
-                var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed);
+                var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed, out _, out _);
                 totalConsumed += consumed;
-                switch (result)
+                switch (result.Type)
                 {
-                    case ValueParseResult.Failure when expected != null:
+                    case ValueParseResultType.Failure when expected != null:
                         Assert.Fail("Failed to parse when failure was not expected.");
                         return;
 
-                    case ValueParseResult.Failure when expected == null:
+                    case ValueParseResultType.Failure when expected == null:
                         return;
 
-                    case ValueParseResult.Success:
+                    case ValueParseResultType.Success:
                         Assert.AreEqual(expected, actual);
                         Assert.AreEqual(expectedLength, totalConsumed);
                         return;
 
-                    case ValueParseResult.EOF:
+                    case ValueParseResultType.EOF:
                         Assert.AreEqual(b.Length, consumed);
                         break;
                 }
@@ -87,23 +87,23 @@ namespace JsonBourne.Tests
             {
                 var b = UTF8.GetBytes(buffer);
 
-                var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed);
+                var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed, out _, out _);
                 totalConsumed += consumed;
-                switch (result)
+                switch (result.Type)
                 {
-                    case ValueParseResult.Failure when successExpected:
+                    case ValueParseResultType.Failure when successExpected:
                         Assert.Fail("Failed to parse when failure was not expected.");
                         return;
 
-                    case ValueParseResult.Failure when !successExpected:
+                    case ValueParseResultType.Failure when !successExpected:
                         return;
 
-                    case ValueParseResult.Success:
+                    case ValueParseResultType.Success:
                         Assert.IsNull(actual);
                         Assert.AreEqual(4, totalConsumed);
                         return;
 
-                    case ValueParseResult.EOF:
+                    case ValueParseResultType.EOF:
                         Assert.AreEqual(b.Length, consumed);
                         break;
                 }
@@ -148,28 +148,28 @@ namespace JsonBourne.Tests
             {
                 var b = UTF8.GetBytes(buffer);
 
-                result = reader.TryParse(b.AsMemory(), out actual, out consumed);
-                switch (result)
+                result = reader.TryParse(b.AsMemory(), out actual, out consumed, out _, out _);
+                switch (result.Type)
                 {
-                    case ValueParseResult.Failure when expected != null:
+                    case ValueParseResultType.Failure when expected != null:
                         Assert.Fail("Failed to parse when failure was not expected.");
                         return;
 
-                    case ValueParseResult.Failure when expected == null:
+                    case ValueParseResultType.Failure when expected == null:
                         return;
 
-                    case ValueParseResult.Success:
+                    case ValueParseResultType.Success:
                         Assert.AreEqual(expected, actual);
                         return;
 
-                    case ValueParseResult.EOF:
+                    case ValueParseResultType.EOF:
                         Assert.AreEqual(b.Length, consumed);
                         break;
                 }
             }
 
-            result = reader.TryParse(default(ReadOnlyMemory<byte>), out actual, out consumed);
-            if ((result == ValueParseResult.Failure && expected != null) || (result == ValueParseResult.Success && expected == null))
+            result = reader.TryParse(default(ReadOnlyMemory<byte>), out actual, out consumed, out _, out _);
+            if ((result.Type == ValueParseResultType.Failure && expected != null) || (result == ValueParseResult.Success && expected == null))
                 Assert.Fail("Unexpected result");
 
             if (result == ValueParseResult.Success && expected != null)
@@ -178,7 +178,7 @@ namespace JsonBourne.Tests
                 Assert.AreEqual(0, consumed);
                 return;
             }
-            else if (result == ValueParseResult.Failure && expected == null)
+            else if (result.Type == ValueParseResultType.Failure && expected == null)
             {
                 Assert.AreEqual(0, consumed);
                 return;
@@ -210,22 +210,22 @@ namespace JsonBourne.Tests
             {
                 var b = UTF8.GetBytes(buffer);
 
-                var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed);
+                var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed, out _, out _);
                 totalConsumed += consumed;
-                switch (result)
+                switch (result.Type)
                 {
-                    case ValueParseResult.Failure when expected != null:
+                    case ValueParseResultType.Failure when expected != null:
                         Assert.Fail("Failed to parse when failure was not expected.");
                         return;
 
-                    case ValueParseResult.Failure when expected == null:
+                    case ValueParseResultType.Failure when expected == null:
                         return;
 
-                    case ValueParseResult.Success:
+                    case ValueParseResultType.Success:
                         Assert.AreEqual(expected, actual);
                         return;
 
-                    case ValueParseResult.EOF:
+                    case ValueParseResultType.EOF:
                         Assert.AreEqual(b.Length, consumed);
                         break;
                 }
@@ -259,25 +259,25 @@ namespace JsonBourne.Tests
             var lpos = 0;
             foreach (var slicePoint in slicePoints.Concat(new[] { allBuffer.Length }))
             {
-                var b = allBuffers.Slice(lpos, slicePoint - lpos);
+                var b = allBuffers[lpos..slicePoint];
                 lpos = slicePoint;
 
-                var result = reader.TryParse(b, out var actual, out var consumed);
+                var result = reader.TryParse(b, out var actual, out var consumed, out _, out _);
                 totalConsumed += consumed;
-                switch (result)
+                switch (result.Type)
                 {
-                    case ValueParseResult.Failure when expected != null:
+                    case ValueParseResultType.Failure when expected != null:
                         Assert.Fail("Failed to parse when failure was not expected.");
                         return;
 
-                    case ValueParseResult.Failure when expected == null:
+                    case ValueParseResultType.Failure when expected == null:
                         return;
 
-                    case ValueParseResult.Success:
+                    case ValueParseResultType.Success:
                         Assert.AreEqual(expected, actual);
                         return;
 
-                    case ValueParseResult.EOF:
+                    case ValueParseResultType.EOF:
                         Assert.AreEqual(b.Length, consumed);
                         break;
                 }

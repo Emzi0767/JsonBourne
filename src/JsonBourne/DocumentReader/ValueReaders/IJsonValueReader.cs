@@ -20,7 +20,7 @@ namespace JsonBourne.DocumentReader
 {
     internal interface IJsonValueReader<T> : IDisposable
     {
-        ValueParseResult TryParse(ReadOnlyMemory<byte> buffer, out T result, out int consumedLength);
-        ValueParseResult TryParse(ReadOnlySpan<byte> buffer, out T result, out int consumedLength);
+        ValueParseResult TryParse(ReadOnlyMemory<byte> buffer, out T result, out int consumedLength, out int lineSpan, out int colSpan);
+        ValueParseResult TryParse(ReadOnlySpan<byte> buffer, out T result, out int consumedLength, out int lineSpan, out int colSpan);
     }
 }

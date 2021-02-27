@@ -14,15 +14,55 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace JsonBourne.DocumentReader
 {
-    internal enum ValueParseResult
+    internal struct ValueParseResult
+    {
+        public static ValueParseResult Success { get; } = new ValueParseResult { Type = ValueParseResultType.Success, StreamPosition = -1, Line = -1, Column = -1 };
+        public static ValueParseResult EOF { get; } = new ValueParseResult { Type = ValueParseResultType.EOF, IsEOF = true, StreamPosition = -1, Line = -1, Column = -1 };
+        public static ValueParseResult Indeterminate { get; } = new ValueParseResult { Type = ValueParseResultType.Intederminate, StreamPosition = -1, Line = -1, Column = -1 };
+        public static ValueParseResult FailureEOF { get; } = new ValueParseResult { Type = ValueParseResultType.Failure, Reason = "Unexpected EOF.", IsEOF = true, StreamPosition = -1, Line = -1, Column = -1 };
+
+        public ValueParseResultType Type { get; init; }
+        public string Reason { get; init; }
+        public Rune FailingRune { get; init; }
+        public bool IsEOF { get; init; }
+
+        public int StreamPosition { get; init; }
+        public int Line { get; init; }
+        public int Column { get; init; }
+
+        public static ValueParseResult Failure(string reason, Rune failingRune)
+            => new ValueParseResult { Type = ValueParseResultType.Failure, Reason = reason, FailingRune = failingRune, StreamPosition = -1, Line = -1, Column = -1 };
+
+        public ValueParseResult Enrich(int pos, int line, int col)
+            => new ValueParseResult
+            {
+                Type = this.Type,
+                Reason = this.Reason,
+                FailingRune = this.FailingRune,
+                IsEOF = this.IsEOF,
+                StreamPosition = pos,
+                Line = line,
+                Column = col
+            };
+
+        public override bool Equals(object obj)
+            => obj is ValueParseResult other && other == this;
+
+        public override int GetHashCode()
+            => this.Type.GetHashCode();
+
+        public static bool operator ==(ValueParseResult left, ValueParseResult right)
+            => left.Type == right.Type;
+
+        public static bool operator !=(ValueParseResult left, ValueParseResult right)
+            => left.Type != right.Type;
+    }
+
+    internal enum ValueParseResultType
     {
         Success,
         Failure,

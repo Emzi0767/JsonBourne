@@ -16,7 +16,9 @@
 
 using System;
 using System.Buffers;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Unicode;
 using Emzi0767.Types;
 using JsonBourne.DocumentModel;
@@ -88,21 +90,23 @@ namespace JsonBourne.DocumentReader
             this._buffContent = ContentType.None;
         }
 
-        public ValueParseResult TryParse(ReadOnlyMemory<byte> buffer, out string result, out int consumedLength)
-            => this.TryParse(buffer.Span, out result, out consumedLength);
+        public ValueParseResult TryParse(ReadOnlyMemory<byte> buffer, out string result, out int consumedLength, out int lineSpan, out int colSpan)
+            => this.TryParse(buffer.Span, out result, out consumedLength, out lineSpan, out colSpan);
 
         [SkipLocalsInit]
-        public ValueParseResult TryParse(ReadOnlySpan<byte> readerSpan, out string result, out int consumedLength)
+        public ValueParseResult TryParse(ReadOnlySpan<byte> readerSpan, out string result, out int consumedLength, out int lineSpan, out int colSpan)
         { 
             result = null;
             consumedLength = 0;
+            lineSpan = 1;
+            colSpan = 0;
 
             // is input empty
             if (readerSpan.Length <= 0)
             {
                 // did any prior processing occur
                 return this.DecodedBuffer != null
-                    ? _cleanup(this, ValueParseResult.Failure)
+                    ? _cleanup(this, ValueParseResult.FailureEOF)
                     : ValueParseResult.EOF;
             }
 
@@ -111,7 +115,12 @@ namespace JsonBourne.DocumentReader
             if (this.DecodedBuffer == null)
             {
                 if (readerSpan[consumedLength++] != JsonTokens.QuoteMark)
-                    return _cleanup(this, ValueParseResult.Failure);
+                {
+                    if (Rune.DecodeFromUtf8(readerSpan, out var rune, out _) != OperationStatus.Done)
+                        rune = default;
+
+                    return _cleanup(this, ValueParseResult.Failure("Unexpected token, expected \".", rune));
+                }
 
                 this.DecodedBuffer = new MemoryBuffer<char>(segmentSize: 2048, initialSegmentCount: 1);
                 startPos = consumedLength;
@@ -143,7 +152,12 @@ namespace JsonBourne.DocumentReader
                     readerSpan.Slice(0, blen + 1 - this._buffPos).CopyTo(this.Buffer[this._buffPos..].Span);
 
                     if (!JsonTokens.TryUnescape(this.Buffer.Span, out decoded[0], out var consumed))
-                        return _cleanup(this, ValueParseResult.Failure);
+                    {
+                        if (Rune.DecodeFromUtf8(readerSpan, out var rune, out _) != OperationStatus.Done)
+                            rune = default;
+
+                        return _cleanup(this, ValueParseResult.Failure("Invalid escape in a string.", rune));
+                    }
 
                     consumedLength += consumed - this._buffPos;
                     startPos = consumedLength;
@@ -168,7 +182,7 @@ namespace JsonBourne.DocumentReader
                     readerSpan.Slice(0, blen - this._buffPos).CopyTo(this.Buffer[this._buffPos..].Span);
 
                     if (Utf8.ToUtf16(this.Buffer.Slice(0, blen).Span, decoded, out var c, out var e) != OperationStatus.Done || c != blen)
-                        return _cleanup(this, ValueParseResult.Failure);
+                        return _cleanup(this, ValueParseResult.Failure("Invalid UTF-8 entity.", default));
 
                     consumedLength += c - this._buffPos;
                     startPos = consumedLength;
@@ -194,7 +208,7 @@ namespace JsonBourne.DocumentReader
                     if (blen > 0)
                     {
                         if (!_decode(readerSpan.Slice(startPos, blen), decoded, this.DecodedBuffer))
-                            return _cleanup(this, ValueParseResult.Failure);
+                            return _cleanup(this, ValueParseResult.Failure("Invalid UTF-8 sequence.", new Rune('"')));
                     }
 
                     break;
@@ -214,7 +228,7 @@ namespace JsonBourne.DocumentReader
                     if (blen > 0)
                     {
                         if (!_decode(readerSpan.Slice(startPos, blen), decoded, this.DecodedBuffer))
-                            return _cleanup(this, ValueParseResult.Failure);
+                            return _cleanup(this, ValueParseResult.Failure("Invalid UTF-8 sequence.", new Rune('\\')));
                     }
 
                     // short escape: \" \\ \/ \b \f \n \r \t
@@ -240,7 +254,12 @@ namespace JsonBourne.DocumentReader
 
                     // unescape
                     if (!JsonTokens.TryUnescape(readerSpan[(consumedLength - 2)..], out decoded[0], out var consumed))
-                        return _cleanup(this, ValueParseResult.Failure);
+                    {
+                        if (Rune.DecodeFromUtf8(readerSpan[(consumedLength - 1)..], out var rune, out _) != OperationStatus.Done)
+                            rune = default;
+
+                        return _cleanup(this, ValueParseResult.Failure("Invalid escape in a string.", rune));
+                    }
 
                     // write to decoded
                     consumedLength += consumed - 2;
@@ -254,7 +273,7 @@ namespace JsonBourne.DocumentReader
                 {
                     // is multibyte? if so, not legal to appear
                     if (char.IsControl((char)b))
-                        return _cleanup(this, ValueParseResult.Failure);
+                        return _cleanup(this, ValueParseResult.Failure("Illegal control character.", new Rune(b)));
 
                     // legal, carry on
                     continue;
@@ -272,7 +291,7 @@ namespace JsonBourne.DocumentReader
                     else if ((b & MultibyteCount4Mask) == MultibyteCount4)
                         seqLen = 4;
                     else
-                        return _cleanup(this, ValueParseResult.Failure);
+                        return _cleanup(this, ValueParseResult.Failure("Invalid UTF-8 sequence.", default));
 
                     // if not enough input, signal EOF
                     if (readerSpan.Length - consumedLength < seqLen - 1)
@@ -282,7 +301,7 @@ namespace JsonBourne.DocumentReader
                         if (blen > 0)
                         {
                             if (!_decode(readerSpan.Slice(startPos, blen), decoded, this.DecodedBuffer))
-                                return _cleanup(this, ValueParseResult.Failure);
+                                return _cleanup(this, ValueParseResult.Failure("Invalid UTF-8 sequence.", default));
                         }
 
                         // copy sequence
@@ -309,6 +328,7 @@ namespace JsonBourne.DocumentReader
             if (completedParsing)
             {
                 result = string.Create((int)this.DecodedBuffer.Count, this.DecodedBuffer, static (@out, @in) => @in.Read(@out, 0, out var written));
+                colSpan = result.EnumerateRunes().Count() + 2;
                 return _cleanup(this, ValueParseResult.Success);
             }
             // no, store state and yield back
@@ -318,7 +338,7 @@ namespace JsonBourne.DocumentReader
                 if (blen > 0)
                 {
                     if (!_decode(readerSpan[startPos..], decoded, this.DecodedBuffer))
-                        return _cleanup(this, ValueParseResult.Failure);
+                        return _cleanup(this, ValueParseResult.Failure("Invalid UTF-8 sequence.", default));
                 }
 
                 return ValueParseResult.EOF;

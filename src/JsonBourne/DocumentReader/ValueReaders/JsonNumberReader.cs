@@ -15,7 +15,9 @@
 // limitations under the License.
 
 using System;
+using System.Buffers;
 using System.Buffers.Text;
+using System.Text;
 using Emzi0767.Types;
 using JsonBourne.DocumentModel;
 
@@ -35,13 +37,15 @@ namespace JsonBourne.DocumentReader
             this.Buffer = null;
         }
 
-        public ValueParseResult TryParse(ReadOnlyMemory<byte> buffer, out double result, out int consumedLength)
-            => this.TryParse(buffer.Span, out result, out consumedLength);
+        public ValueParseResult TryParse(ReadOnlyMemory<byte> buffer, out double result, out int consumedLength, out int lineSpan, out int colSpan)
+            => this.TryParse(buffer.Span, out result, out consumedLength, out lineSpan, out colSpan);
 
-        public ValueParseResult TryParse(ReadOnlySpan<byte> readerSpan, out double result, out int consumedLength)
+        public ValueParseResult TryParse(ReadOnlySpan<byte> readerSpan, out double result, out int consumedLength, out int lineSpan, out int colSpan)
         {
             result = double.NaN;
             consumedLength = 0;
+            lineSpan = 1;
+            colSpan = 0;
 
             // if span is empty, and no parsing occured, signal EOF immediately
             if (readerSpan.Length <= 0 && this._lastPart == NumberPart.None)
@@ -82,7 +86,10 @@ namespace JsonBourne.DocumentReader
 
                     // not a legal character
                     default:
-                        return ValueParseResult.Failure;
+                        if (Rune.DecodeFromUtf8(readerSpan, out var rune, out _) != OperationStatus.Done)
+                            rune = default;
+
+                        return ValueParseResult.Failure("Unexpected token, expected 0-9 or -.", rune);
                 }
             }
 
@@ -108,7 +115,7 @@ namespace JsonBourne.DocumentReader
                         // see: https://www.json.org/img/number.png
                         case JsonTokens.Digit0:
                             if (this._lastPart == NumberPart.FirstDigit && this._currentStructure.HasFlag(NumberStructure.LeadingZero))
-                                return _cleanup(this, ValueParseResult.Failure);
+                                return _cleanup(this, ValueParseResult.Failure("Digit in illegal separator. Expected decimal point.", new Rune(readerSpan[consumedLength - 1])));
 
                             if (this._lastPart == NumberPart.NumberSign)
                             {
@@ -143,7 +150,7 @@ namespace JsonBourne.DocumentReader
                         case JsonTokens.Digit8:
                         case JsonTokens.Digit9:
                             if (this._lastPart == NumberPart.FirstDigit && this._currentStructure.HasFlag(NumberStructure.LeadingZero))
-                                return _cleanup(this, ValueParseResult.Failure);
+                                return _cleanup(this, ValueParseResult.Failure("Digit in illegal separator. Expected decimal point.", new Rune(readerSpan[consumedLength - 1])));
 
                             if (this._lastPart == NumberPart.NumberSign)
                             {
@@ -165,7 +172,7 @@ namespace JsonBourne.DocumentReader
                         // decimal separator can appear only after at least one digit, and only once
                         case JsonTokens.DecimalSeparator:
                             if (this._lastPart != NumberPart.Digit && this._lastPart != NumberPart.FirstDigit)
-                                return _cleanup(this, ValueParseResult.Failure);
+                                return _cleanup(this, ValueParseResult.Failure("Unexpected decimal separator.", new Rune('.')));
 
                             this._currentStructure |= NumberStructure.Fraction;
                             this._lastPart = NumberPart.FractionDot;
@@ -176,7 +183,7 @@ namespace JsonBourne.DocumentReader
                         case JsonTokens.ExponentSmall:
                         case JsonTokens.ExponentCapital:
                             if (this._lastPart != NumberPart.FirstDigit && this._lastPart != NumberPart.Digit && this._lastPart != NumberPart.FractionDigit)
-                                return _cleanup(this, ValueParseResult.Failure);
+                                return _cleanup(this, ValueParseResult.Failure("Unexpected exponent marker.", new Rune(readerSpan[consumedLength - 1])));
 
                             this._currentStructure |= NumberStructure.Exponent;
                             this._lastPart = NumberPart.ExponentMarker;
@@ -190,7 +197,7 @@ namespace JsonBourne.DocumentReader
                         case JsonTokens.NumberSign:
                         case JsonTokens.ExponentSignPositive:
                             if (this._lastPart != NumberPart.ExponentMarker)
-                                return _cleanup(this, ValueParseResult.Failure);
+                                return _cleanup(this, ValueParseResult.Failure("Unexpected exponent sign.", new Rune(readerSpan[consumedLength - 1])));
 
                             this._currentStructure |= NumberStructure.SignedExponent;
                             this._lastPart = NumberPart.ExponentSign;
@@ -206,7 +213,10 @@ namespace JsonBourne.DocumentReader
                                 case NumberPart.FractionDot:
                                 case NumberPart.ExponentMarker:
                                 case NumberPart.ExponentSign:
-                                    return _cleanup(this, ValueParseResult.Failure);
+                                    if (Rune.DecodeFromUtf8(readerSpan[(consumedLength - 1)..], out var rune, out _) != OperationStatus.Done)
+                                        rune = default;
+
+                                    return _cleanup(this, ValueParseResult.Failure("Unexpected token, expected 0-9.", rune));
                             }
 
                             offByOne = true;
@@ -230,7 +240,7 @@ namespace JsonBourne.DocumentReader
                     case NumberPart.FractionDot:
                     case NumberPart.ExponentMarker:
                     case NumberPart.ExponentSign:
-                        return _cleanup(this, ValueParseResult.Failure);
+                        return _cleanup(this, ValueParseResult.FailureEOF);
                 }
 
                 completedParsing = true;
@@ -253,6 +263,7 @@ namespace JsonBourne.DocumentReader
 
                     parseResult = Utf8Parser.TryParse(buff, out result, out buffConsumed);
                     expectedLength = buff.Length;
+                    colSpan = buffConsumed;
                 }
                 // no, parse as-is
                 else
@@ -260,9 +271,10 @@ namespace JsonBourne.DocumentReader
                     input = input.Slice(0, consumedLength);
                     parseResult = Utf8Parser.TryParse(input, out result, out buffConsumed);
                     expectedLength = input.Length;
+                    colSpan = buffConsumed;
                 }
 
-                return _cleanup(this, parseResult && buffConsumed == expectedLength ? ValueParseResult.Success : ValueParseResult.Failure);
+                return _cleanup(this, parseResult && buffConsumed == expectedLength ? ValueParseResult.Success : ValueParseResult.Failure("Invalid number value.", default));
             }
             // no, store state and yield back
             else

@@ -15,7 +15,9 @@
 // limitations under the License.
 
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
+using System.Text;
 using JsonBourne.DocumentModel;
 
 namespace JsonBourne.DocumentReader
@@ -32,20 +34,22 @@ namespace JsonBourne.DocumentReader
             this._buffPos = 0;
         }
 
-        public ValueParseResult TryParse(ReadOnlyMemory<byte> buffer, out object result, out int consumedLength)
-            => this.TryParse(buffer.Span, out result, out consumedLength);
+        public ValueParseResult TryParse(ReadOnlyMemory<byte> buffer, out object result, out int consumedLength, out int lineSpan, out int colSpan)
+            => this.TryParse(buffer.Span, out result, out consumedLength, out lineSpan, out colSpan);
 
-        public ValueParseResult TryParse(ReadOnlySpan<byte> readerSpan, out object result, out int consumedLength)
+        public ValueParseResult TryParse(ReadOnlySpan<byte> readerSpan, out object result, out int consumedLength, out int lineSpan, out int colSpan)
         {
             result = null;
             consumedLength = 0;
+            colSpan = 1;
+            lineSpan = 0;
 
             // is input empty
             if (readerSpan.Length <= 0)
             {
                 // did any prior processing occur
                 return this._buffPos > 0
-                    ? _cleanup(this, ValueParseResult.Failure)
+                    ? _cleanup(this, ValueParseResult.FailureEOF)
                     : ValueParseResult.EOF;
             }
 
@@ -54,7 +58,10 @@ namespace JsonBourne.DocumentReader
             if (src[0] != JsonTokens.NullFirst)
             {
                 this._buffPos = 0;
-                return ValueParseResult.Failure;
+                if (Rune.DecodeFromUtf8(readerSpan, out var rune, out _) != OperationStatus.Done)
+                    rune = default;
+
+                return ValueParseResult.Failure("Unexpected token, expected null.", rune);
             }
 
             // if reader buffer is too small, copy its contents then signal EOF
@@ -76,12 +83,13 @@ namespace JsonBourne.DocumentReader
             // try to parse
             this._buffPos = 0;
             var src32 = BinaryPrimitives.ReadInt32LittleEndian(src);
+            colSpan = 4;
             return src32 switch
             {
                 JsonTokens.Null32 => ValueParseResult.Success,
 
                 // tokens didn't match
-                _ => ValueParseResult.Failure,
+                _ => ValueParseResult.Failure("Unexpected token, expected null.", default),
             };
 
             static ValueParseResult _cleanup(IDisposable rdr, ValueParseResult result)

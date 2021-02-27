@@ -23,6 +23,12 @@ namespace JsonBourne.DocumentModel
     /// </summary>
     public abstract class JsonValue
     {
+        /// <summary>
+        /// Gets whether this value represents a null.
+        /// </summary>
+        public bool IsNull
+            => this is JsonNullValue;
+
         internal JsonValue()
         { }
 
@@ -51,6 +57,42 @@ namespace JsonBourne.DocumentModel
         public static explicit operator double(JsonValue value)
             => value is JsonValue<double> jsonDouble
             ? jsonDouble.Value
+            : throw new InvalidCastException("This value is not an floating-point value.");
+
+        /// <summary>
+        /// Converts a JSON value to 64-bit integer value, if possible.
+        /// </summary>
+        /// <param name="value">Value to convert.</param>
+        public static explicit operator long(JsonValue value)
+            => value is JsonValue<double> jsonDouble
+            ? (long)jsonDouble.Value
+            : throw new InvalidCastException("This value is not an floating-point value.");
+
+        /// <summary>
+        /// Converts a JSON value to 64-bit unsigned integer value, if possible.
+        /// </summary>
+        /// <param name="value">Value to convert.</param>
+        public static explicit operator ulong(JsonValue value)
+            => value is JsonValue<double> jsonDouble
+            ? (ulong)jsonDouble.Value
+            : throw new InvalidCastException("This value is not an floating-point value.");
+
+        /// <summary>
+        /// Converts a JSON value to 32-bit integer value, if possible.
+        /// </summary>
+        /// <param name="value">Value to convert.</param>
+        public static explicit operator int(JsonValue value)
+            => value is JsonValue<double> jsonDouble
+            ? (int)jsonDouble.Value
+            : throw new InvalidCastException("This value is not an floating-point value.");
+
+        /// <summary>
+        /// Converts a JSON value to 32-bit unsigned integer value, if possible.
+        /// </summary>
+        /// <param name="value">Value to convert.</param>
+        public static explicit operator uint(JsonValue value)
+            => value is JsonValue<double> jsonDouble
+            ? (uint)jsonDouble.Value
             : throw new InvalidCastException("This value is not an floating-point value.");
     }
 
