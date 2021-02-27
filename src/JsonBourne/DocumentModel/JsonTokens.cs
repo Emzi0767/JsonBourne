@@ -189,5 +189,8 @@ namespace JsonBourne.DocumentModel
         public const byte WhitespaceNewline = (byte)'\n';
         public const byte WhitespaceCarriageReturn = (byte)'\r';
         public const byte WhitespaceHorizontalTab = (byte)'\t';
+
+        // misc
+        public static byte[] BOM { get; } = new byte[] { 0xEF, 0xBB, 0xBF };
     }
 }

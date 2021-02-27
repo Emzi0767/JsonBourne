@@ -7,8 +7,6 @@ namespace JsonBourne.Tests
     [TestClass]
     public class CharEscapeTests
     {
-        private static UTF8Encoding UTF8 { get; } = new(false);
-
         [DataTestMethod]
         [DataRow('"', @"\""", true)]
         [DataRow('\\', @"\\", true)]
@@ -31,7 +29,7 @@ namespace JsonBourne.Tests
 
             Assert.AreEqual(expectedOutput.Length, written);
 
-            var str = UTF8.GetString(buff[0..written]);
+            var str = JsonUtilities.UTF8.GetString(buff[0..written]);
             Assert.AreEqual(expectedOutput, str);
         }
 
@@ -49,7 +47,7 @@ namespace JsonBourne.Tests
         [DataRow(@"a", '\0', false)]
         public void TestUnescape(string input, char expectedOutput, bool expectedResult)
         {
-            var buff = UTF8.GetBytes(input);
+            var buff = JsonUtilities.UTF8.GetBytes(input);
 
             var escapeResult = JsonTokens.TryUnescape(buff, out var output, out var consumed);
             Assert.AreEqual(expectedResult, escapeResult);

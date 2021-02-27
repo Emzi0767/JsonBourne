@@ -15,33 +15,53 @@
 // limitations under the License.
 
 using System;
-using System.Collections.Generic;
+using System.Buffers;
 using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using JsonBourne.DocumentModel;
+using JsonBourne.DocumentReader;
 
 namespace JsonBourne
 {
     /// <summary>
-    /// Parses a JSON document and creates parsed JSON document trees. This class accepts UTF-8 inputs only.
+    /// Parses a JSON document and creates parsed JSON document trees. This class accepts UTF-8 inputs only. This class is not thread-safe.
     /// </summary>
     public sealed class JsonParser
     {
+        private JsonStreamReader StreamReader { get; set; }
+        private JsonMemoryReader MemoryReader { get; set; }
+
+        /// <summary>
+        /// Parses a JSON document from supplied memory region.
+        /// </summary>
+        /// <param name="input">Memory region to parse.</param>
+        /// <returns>Parsed JSON document.</returns>
         public JsonValue Parse(ReadOnlyMemory<byte> input)
             => this.Parse(input.Span);
 
+        /// <summary>
+        /// Parses a JSON document from supplied memory region.
+        /// </summary>
+        /// <param name="input">Memory region to parse.</param>
+        /// <returns>Parsed JSON document.</returns>
         public JsonValue Parse(ReadOnlySpan<byte> input)
         {
-            throw new NotImplementedException();
+            var jsonReader = this.MemoryReader ??= new JsonMemoryReader();
+            return jsonReader.ParseJson(input);
         }
 
-        public async Task<JsonValue> ParseAsync(Stream input)
+        /// <summary>
+        /// Parses a JSON document from supplied stream.
+        /// </summary>
+        /// <param name="inputStream">Stream to parse.</param>
+        /// <param name="cancellationToken">Token to cancel asynchronous operations.</param>
+        /// <param name="memoryPool">Memory pool to use for buffering.</param>
+        /// <returns>Parsed JSON document.</returns>
+        public async Task<JsonValue> ParseAsync(Stream inputStream, MemoryPool<byte> memoryPool = default, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            var jsonReader = this.StreamReader ??= new JsonStreamReader();
+            return await jsonReader.ParseJsonAsync(inputStream, memoryPool, cancellationToken);
         }
     }
 }

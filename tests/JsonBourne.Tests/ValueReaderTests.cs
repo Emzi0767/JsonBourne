@@ -27,8 +27,6 @@ namespace JsonBourne.Tests
     [TestClass]
     public sealed class ValueReaderTests
     {
-        private static UTF8Encoding UTF8 { get; } = new(false);
-
         [DataTestMethod]
         [DataRow(true, 4, "true")]
         [DataRow(false, 5, "false")]
@@ -46,7 +44,7 @@ namespace JsonBourne.Tests
             var totalConsumed = 0;
             foreach (var buffer in buffers)
             {
-                var b = UTF8.GetBytes(buffer);
+                var b = JsonUtilities.UTF8.GetBytes(buffer);
 
                 var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed, out _, out _);
                 totalConsumed += consumed;
@@ -87,7 +85,7 @@ namespace JsonBourne.Tests
             var totalConsumed = 0;
             foreach (var buffer in buffers)
             {
-                var b = UTF8.GetBytes(buffer);
+                var b = JsonUtilities.UTF8.GetBytes(buffer);
 
                 var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed, out _, out _);
                 totalConsumed += consumed;
@@ -148,7 +146,7 @@ namespace JsonBourne.Tests
             double actual; int consumed; ValueParseResult result;
             foreach (var buffer in buffers)
             {
-                var b = UTF8.GetBytes(buffer);
+                var b = JsonUtilities.UTF8.GetBytes(buffer);
 
                 result = reader.TryParse(b.AsMemory(), out actual, out consumed, out _, out _);
                 switch (result.Type)
@@ -170,7 +168,7 @@ namespace JsonBourne.Tests
                 }
             }
 
-            result = reader.TryParse(default(ReadOnlyMemory<byte>), out actual, out consumed, out _, out _);
+            result = reader.TryParse(ReadOnlySpan<byte>.Empty, out actual, out consumed, out _, out _);
             if ((result.Type == ValueParseResultType.Failure && expected != null) || (result == ValueParseResult.Success && expected == null))
                 Assert.Fail("Unexpected result");
 
@@ -210,7 +208,7 @@ namespace JsonBourne.Tests
             var totalConsumed = 0;
             foreach (var buffer in buffers)
             {
-                var b = UTF8.GetBytes(buffer);
+                var b = JsonUtilities.UTF8.GetBytes(buffer);
 
                 var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed, out _, out _);
                 totalConsumed += consumed;
@@ -252,7 +250,7 @@ namespace JsonBourne.Tests
         [DataRow("abcd", @"""ab\u0063d""", 6, 9)]
         public void TestUtf8StringParser(string expected, string input, params int[] slicePoints)
         {
-            var allBuffer = UTF8.GetBytes(input);
+            var allBuffer = JsonUtilities.UTF8.GetBytes(input);
             var allBuffers = allBuffer.AsSpan();
 
             var reader = new JsonStringReader();
@@ -294,6 +292,7 @@ namespace JsonBourne.Tests
         [DataRow(new object[] { null, false, 1.5, true, -1.0, "😒" }, @"[nu", @"ll, fa", @"lse, 1.5, tr", @"ue, -1, """, @"😒""]")]
         [DataRow(new object[] { null, false, 1.5, true, -1.0, "😒" }, @"[null, false, 1.5", @", true, -1, """, @"😒""]")]
         [DataRow(new object[] { null, false, 1.5, true, -1.0, "😒" }, @"[null, false, 1.5, true, -1, ", @"""", @"😒""]")]
+        [DataRow(new object[] { }, "[]")]
         public void TestSimpleArrayParser(object[] expected, params string[] buffers)
         {
             var reader = new JsonArrayReader(new ValueReaderCollection());
@@ -301,7 +300,7 @@ namespace JsonBourne.Tests
             var totalConsumed = 0;
             foreach (var buffer in buffers)
             {
-                var b = UTF8.GetBytes(buffer);
+                var b = JsonUtilities.UTF8.GetBytes(buffer);
 
                 var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed, out _, out _);
                 totalConsumed += consumed;
@@ -338,7 +337,7 @@ namespace JsonBourne.Tests
             var totalConsumed = 0;
             foreach (var buffer in buffers)
             {
-                var b = UTF8.GetBytes(buffer);
+                var b = JsonUtilities.UTF8.GetBytes(buffer);
 
                 var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed, out _, out _);
                 totalConsumed += consumed;
@@ -396,6 +395,7 @@ namespace JsonBourne.Tests
         [DataRow(new object[] { "inner", null, "num", 42.0, "str", "😒", "😒", true }, @"{", @"""", @"inner"": null, ""num"": 42, ""str"": ""😒"", ""😒"": true}")]
         [DataRow(new object[] { "inner", null, "num", 42.0, "str", "😒", "😒", true }, @"{""", @"inner"": nu", @"ll, ""num"": 42, ""str"": ""😒"", ""😒"": true}")]
         [DataRow(new object[] { "inner", null, "num", 42.0, "str", "😒", "😒", true }, @"{""", @"inner"": nu", @"ll, ""num"": 4", @"2, ""s", @"tr"": ""😒"", ""😒", @""": tr", @"ue}")]
+        [DataRow(new object[] { }, "{}")]
         public void TestSimpleObjectParser(object[] expected, params string[] buffers)
         {
             var reader = new JsonObjectReader(new ValueReaderCollection());
@@ -403,7 +403,7 @@ namespace JsonBourne.Tests
             var totalConsumed = 0;
             foreach (var buffer in buffers)
             {
-                var b = UTF8.GetBytes(buffer);
+                var b = JsonUtilities.UTF8.GetBytes(buffer);
 
                 var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed, out _, out _);
                 totalConsumed += consumed;
@@ -463,7 +463,7 @@ namespace JsonBourne.Tests
             var totalConsumed = 0;
             foreach (var buffer in buffers)
             {
-                var b = UTF8.GetBytes(buffer);
+                var b = JsonUtilities.UTF8.GetBytes(buffer);
 
                 var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed, out _, out _);
                 totalConsumed += consumed;

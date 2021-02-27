@@ -44,21 +44,33 @@ namespace JsonBourne
         /// </summary>
         public Rune Rune { get; }
 
+        /// <summary>
+        /// Gets the message reported by the parser.
+        /// </summary>
+        public string ParserMessage { get; }
+
         internal JsonParseException(Exception inner)
-            : this(-1, -1, -1, default, inner)
+            : base("Exception occured while parsing JSON.", inner)
+        {
+            this.StreamPosition = -1;
+            this.Line = -1;
+            this.Column = -1;
+            this.Rune = default;
+            this.ParserMessage = null;
+        }
+
+        internal JsonParseException(int pos, int line, int col, Rune rune, string reason)
+            : this(pos, line, col, rune, reason, null)
         { }
 
-        internal JsonParseException(int pos, int line, int col, Rune rune)
-            : this(pos, line, col, rune, null)
-        { }
-
-        internal JsonParseException(int pos, int line, int col, Rune rune, Exception inner)
-            : base(pos >= 0 ? $"Unexpected rune in JSON input: '{rune}', line {line}, column {col}, stream position {pos}." : "Exception occured during parsing JSON.", inner)
+        internal JsonParseException(int pos, int line, int col, Rune rune, string reason, Exception inner)
+            : base($"Unexpected rune in JSON input: '{rune}', line: {line}, column: {col}, stream position: {pos}, reason: '{reason}'.", inner)
         {
             this.StreamPosition = pos;
             this.Line = line;
             this.Column = col;
             this.Rune = rune;
+            this.ParserMessage = reason;
         }
     }
 }

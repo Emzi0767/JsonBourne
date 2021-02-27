@@ -16,32 +16,27 @@
 
 using System;
 using System.Buffers;
-using System.Collections.Immutable;
 using System.Text;
 using JsonBourne.DocumentModel;
 
 namespace JsonBourne.DocumentReader
 {
-    internal sealed class JsonArrayReader : IJsonValueReader<ImmutableArray<JsonValue>>
+    internal sealed class JsonDocumentReader : IJsonValueReader<JsonValue>
     {
         private int _lineSpan, _colSpan, _streamPos;
-        private ImmutableArray<JsonValue>.Builder _arr;
-        private ExpectedToken _expectedNext;
         private IJsonValueReader _innerReader;
-        private readonly ValueReaderCollection _innerReaders;
 
-        public JsonArrayReader(ValueReaderCollection valueReaders)
+        public JsonDocumentReader()
         {
-            this._innerReaders = valueReaders;
-            this.Dispose(); // I mean really this just resets whatever internals
+            this.Dispose();
         }
 
-        public ValueParseResult TryParse(ReadOnlyMemory<byte> buffer, out ImmutableArray<JsonValue> result, out int consumedLength, out int lineSpan, out int colSpan)
+        public ValueParseResult TryParse(ReadOnlyMemory<byte> buffer, out JsonValue result, out int consumedLength, out int lineSpan, out int colSpan)
             => this.TryParse(buffer.Span, out result, out consumedLength, out lineSpan, out colSpan);
 
-        public ValueParseResult TryParse(ReadOnlySpan<byte> readerSpan, out ImmutableArray<JsonValue> result, out int consumedLength, out int lineSpan, out int colSpan)
+        public ValueParseResult TryParse(ReadOnlySpan<byte> readerSpan, out JsonValue result, out int consumedLength, out int lineSpan, out int colSpan)
         {
-            result = default;
+            result = null;
             consumedLength = 0;
             lineSpan = 1;
             colSpan = 0;
@@ -50,44 +45,21 @@ namespace JsonBourne.DocumentReader
             if (readerSpan.Length <= 0 && this._innerReader == null)
             {
                 // did any prior processing occur
-                return this._arr != null
+                return this._innerReader != null
                     ? _cleanup(this, ValueParseResult.FailureEOF)
                     : ValueParseResult.EOF;
             }
 
-            // if we are not continuing, ensure it's an object that's being parsed
-            if (this._arr == null)
-            {
-                if (readerSpan[consumedLength++] != JsonTokens.OpeningBracket)
-                {
-                    if (Rune.DecodeFromUtf8(readerSpan, out var rune, out _) != OperationStatus.Done)
-                        rune = default;
-
-                    return _cleanup(this, ValueParseResult.Failure("Unexpected token, expected {.", rune));
-                }
-
-                this._expectedNext = ExpectedToken.ValueOrEnd;
-                this._arr = ImmutableArray.CreateBuilder<JsonValue>();
-                ++this._colSpan;
-                ++this._streamPos;
-            }
-
-            // if continuing, check if any value is being parsed
+            // continue parsing?
             if (this._innerReader != null)
             {
-                // valid only if expecting value
-                if (this._expectedNext != ExpectedToken.Value && this._expectedNext != ExpectedToken.ValueOrEnd)
-                    return _cleanup(this, ValueParseResult.Failure("Invalid internal state.", default));
-
-                // parse inner value
-                ++consumedLength;
-                var innerResult = _parseInner(readerSpan, this._innerReader, this._arr, ref this._expectedNext, ref this._streamPos, ref this._lineSpan, ref this._colSpan, ref consumedLength);
+                var innerResult = _parseInner(readerSpan, this._innerReader, out result, ref this._streamPos, ref this._lineSpan, ref this._colSpan, ref consumedLength);
                 switch (innerResult.Type)
                 {
                     case ValueParseResultType.Success:
                         this._innerReader.Dispose();
                         this._innerReader = null;
-                        break;
+                        return _cleanup(this, innerResult);
 
                     case ValueParseResultType.EOF:
                         return innerResult;
@@ -98,8 +70,7 @@ namespace JsonBourne.DocumentReader
                 }
             }
 
-            // read and parse array items
-            var completedParsing = false;
+            // not continuing, find any token
             while (consumedLength < readerSpan.Length)
             {
                 switch (readerSpan[consumedLength++])
@@ -125,37 +96,13 @@ namespace JsonBourne.DocumentReader
                         ++this._streamPos;
                         break;
 
-                    case JsonTokens.ItemSeparator:
-                        if (this._expectedNext != ExpectedToken.ItemSeparatorOrEnd)
-                            return _cleanup(this, ValueParseResult.Failure("Unexpected item separator.", new Rune(JsonTokens.ItemSeparator)));
-
-                        ++this._colSpan;
-                        ++this._streamPos;
-                        this._expectedNext = ExpectedToken.Value;
-                        break;
-
-                    case JsonTokens.ClosingBracket:
-                        if (this._expectedNext != ExpectedToken.ItemSeparatorOrEnd && this._expectedNext != ExpectedToken.ValueOrEnd)
-                            return _cleanup(this, ValueParseResult.Failure("Unexpected array end.", new Rune(JsonTokens.ClosingBracket)));
-
-                        ++this._colSpan;
-                        ++this._streamPos;
-                        completedParsing = true;
-                        break;
-
                     case JsonTokens.NullFirst:
-                        if (this._expectedNext != ExpectedToken.Value && this._expectedNext != ExpectedToken.ValueOrEnd)
-                            return _cleanup(this, ValueParseResult.Failure("Unexpected array item (null).", new Rune(JsonTokens.NullFirst)));
-
-                        this._innerReader = this._innerReaders.NullReader;
+                        this._innerReader = new JsonNullReader();
                         break;
 
                     case JsonTokens.TrueFirst:
                     case JsonTokens.FalseFirst:
-                        if (this._expectedNext != ExpectedToken.Value && this._expectedNext != ExpectedToken.ValueOrEnd)
-                            return _cleanup(this, ValueParseResult.Failure("Unexpected array item (boolean).", new Rune(readerSpan[consumedLength - 1])));
-
-                        this._innerReader = this._innerReaders.BooleanReader;
+                        this._innerReader = new JsonBooleanReader();
                         break;
 
                     case JsonTokens.NumberSign:
@@ -169,54 +116,38 @@ namespace JsonBourne.DocumentReader
                     case JsonTokens.Digit7:
                     case JsonTokens.Digit8:
                     case JsonTokens.Digit9:
-                        if (this._expectedNext != ExpectedToken.Value && this._expectedNext != ExpectedToken.ValueOrEnd)
-                            return _cleanup(this, ValueParseResult.Failure("Unexpected array item (number).", new Rune(readerSpan[consumedLength - 1])));
-
-                        this._innerReader = this._innerReaders.NumberReader;
+                        this._innerReader = new JsonNumberReader();
                         break;
 
                     case JsonTokens.QuoteMark:
-                        if (this._expectedNext != ExpectedToken.Value && this._expectedNext != ExpectedToken.ValueOrEnd)
-                            return _cleanup(this, ValueParseResult.Failure("Unexpected array item (string).", new Rune(JsonTokens.QuoteMark)));
-
-                        this._innerReader = this._innerReaders.StringReader;
+                        this._innerReader = new JsonStringReader();
                         break;
 
                     case JsonTokens.OpeningBracket:
-                        if (this._expectedNext != ExpectedToken.Value && this._expectedNext != ExpectedToken.ValueOrEnd)
-                            return _cleanup(this, ValueParseResult.Failure("Unexpected array item (array).", new Rune(JsonTokens.OpeningBracket)));
-
-                        this._innerReader = new JsonArrayReader(this._innerReaders);
+                        this._innerReader = new JsonArrayReader(new ValueReaderCollection());
                         break;
 
                     case JsonTokens.OpeningBrace:
-                        if (this._expectedNext != ExpectedToken.Value && this._expectedNext != ExpectedToken.ValueOrEnd)
-                            return _cleanup(this, ValueParseResult.Failure("Unexpected array item (object).", new Rune(JsonTokens.OpeningBracket)));
-
-                        this._innerReader = new JsonObjectReader(this._innerReaders);
+                        this._innerReader = new JsonObjectReader(new ValueReaderCollection());
                         break;
 
                     default:
                         if (Rune.DecodeFromUtf8(readerSpan[(consumedLength - 1)..], out var rune, out _) != OperationStatus.Done)
                             rune = default;
 
-                        return _cleanup(this, ValueParseResult.Failure("Unexpected token while parsing array.", rune));
+                        return _cleanup(this, ValueParseResult.Failure("Unexpected token while parsing JSON.", rune));
                 }
 
                 // parsing done?
-                if (completedParsing)
-                    break;
-
-                // parse inner value
                 if (this._innerReader != null)
                 {
-                    var innerResult = _parseInner(readerSpan.Slice(consumedLength - 1), this._innerReader, this._arr, ref this._expectedNext, ref this._streamPos, ref this._lineSpan, ref this._colSpan, ref consumedLength);
+                    var innerResult = _parseInner(readerSpan.Slice(consumedLength - 1), this._innerReader, out result, ref this._streamPos, ref this._lineSpan, ref this._colSpan, ref consumedLength);
                     switch (innerResult.Type)
                     {
                         case ValueParseResultType.Success:
                             this._innerReader.Dispose();
                             this._innerReader = null;
-                            break;
+                            return _cleanup(this, innerResult);
 
                         case ValueParseResultType.EOF:
                             return innerResult;
@@ -228,24 +159,13 @@ namespace JsonBourne.DocumentReader
                 }
             }
 
-            // did we reach the end of input before running out of it
-            if (completedParsing)
-            {
-                colSpan = this._colSpan;
-                lineSpan = this._lineSpan;
-                result = this._arr.ToImmutable();
-                return _cleanup(this, ValueParseResult.Success);
-            }
-            // no, yield back
-            {
-                return ValueParseResult.EOF;
-            }
+            return _cleanup(this, ValueParseResult.FailureEOF);
 
-            static ValueParseResult _parseInner(ReadOnlySpan<byte> input, IJsonValueReader innerReader, ImmutableArray<JsonValue>.Builder output, ref ExpectedToken next, ref int pos, ref int line, ref int col, ref int consumed)
+            static ValueParseResult _parseInner(ReadOnlySpan<byte> input, IJsonValueReader innerReader, out JsonValue resultValue, ref int pos, ref int line, ref int col, ref int consumed)
             {
                 ValueParseResult innerResult;
                 int innerLineSpan = 1, innerColSpan = 0, innerConsumed = 0;
-                JsonValue resultValue = null;
+                resultValue = null;
                 switch (innerReader)
                 {
                     case JsonNullReader nullReader:
@@ -321,8 +241,6 @@ namespace JsonBourne.DocumentReader
                             ? innerColSpan
                             : col + innerColSpan;
 
-                        next = ExpectedToken.ItemSeparatorOrEnd;
-                        output.Add(resultValue);
                         return ValueParseResult.Success;
 
                     // inner parser ran out of input
@@ -346,19 +264,9 @@ namespace JsonBourne.DocumentReader
         {
             this._innerReader?.Dispose();
             this._innerReader = null;
-            this._arr = null;
-            this._streamPos = 0;
             this._lineSpan = 1;
             this._colSpan = 0;
-            this._expectedNext = ExpectedToken.None;
-        }
-
-        private enum ExpectedToken
-        {
-            None,
-            ItemSeparatorOrEnd,
-            Value,
-            ValueOrEnd
+            this._streamPos = 0;
         }
     }
 }

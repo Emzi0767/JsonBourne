@@ -49,7 +49,7 @@ namespace JsonBourne.DocumentReader
             colSpan = 0;
 
             // is input empty
-            if (readerSpan.Length <= 0)
+            if (readerSpan.Length <= 0 && this._innerReader == null)
             {
                 // did any prior processing occur
                 return this._obj != null
@@ -68,7 +68,7 @@ namespace JsonBourne.DocumentReader
                     return _cleanup(this, ValueParseResult.Failure("Unexpected token, expected {.", rune));
                 }
 
-                this._expectedNext = ExpectedToken.Key;
+                this._expectedNext = ExpectedToken.KeyOrEnd;
                 this._obj = new Dictionary<string, JsonValue>();
                 ++this._colSpan;
                 ++this._streamPos;
@@ -78,15 +78,15 @@ namespace JsonBourne.DocumentReader
             if (this._innerReader != null)
             {
                 // valid only if expecting value
-                if (this._expectedNext != ExpectedToken.Value && this._expectedNext != ExpectedToken.Key)
+                if (this._expectedNext != ExpectedToken.Value && this._expectedNext != ExpectedToken.Key && this._expectedNext != ExpectedToken.KeyOrEnd)
                     return _cleanup(this, ValueParseResult.Failure("Invalid internal state.", default));
 
                 // if key expected, inner parser must be a string parser
-                if (this._expectedNext == ExpectedToken.Key && this._innerReader is not JsonStringReader)
+                if ((this._expectedNext == ExpectedToken.Key || this._expectedNext == ExpectedToken.KeyOrEnd) && this._innerReader is not JsonStringReader)
                     return _cleanup(this, ValueParseResult.Failure("Invalid internal state.", default));
 
                 // parse inner value
-                var expectKey = this._expectedNext == ExpectedToken.Key;
+                var expectKey = this._expectedNext == ExpectedToken.Key || this._expectedNext == ExpectedToken.KeyOrEnd;
                 ++consumedLength;
                 var innerResult = _parseInner(readerSpan, this._innerReader, out var innerValue, ref this._expectedNext, ref this._streamPos, ref this._lineSpan, ref this._colSpan, ref consumedLength);
                 switch (innerResult.Type)
@@ -168,7 +168,7 @@ namespace JsonBourne.DocumentReader
                         break;
 
                     case JsonTokens.ClosingBrace:
-                        if (this._expectedNext != ExpectedToken.ItemSeparatorOrEnd)
+                        if (this._expectedNext != ExpectedToken.ItemSeparatorOrEnd && this._expectedNext != ExpectedToken.KeyOrEnd)
                             return _cleanup(this, ValueParseResult.Failure("Unexpected object end.", new Rune(JsonTokens.ClosingBrace)));
 
                         ++this._colSpan;
@@ -178,7 +178,7 @@ namespace JsonBourne.DocumentReader
 
                     case JsonTokens.NullFirst:
                         if (this._expectedNext != ExpectedToken.Value)
-                            return _cleanup(this, ValueParseResult.Failure("Unexpected array item (null).", new Rune(JsonTokens.NullFirst)));
+                            return _cleanup(this, ValueParseResult.Failure("Unexpected object item (null).", new Rune(JsonTokens.NullFirst)));
 
                         this._innerReader = this._innerReaders.NullReader;
                         break;
@@ -186,7 +186,7 @@ namespace JsonBourne.DocumentReader
                     case JsonTokens.TrueFirst:
                     case JsonTokens.FalseFirst:
                         if (this._expectedNext != ExpectedToken.Value)
-                            return _cleanup(this, ValueParseResult.Failure("Unexpected array item (boolean).", new Rune(readerSpan[consumedLength - 1])));
+                            return _cleanup(this, ValueParseResult.Failure("Unexpected object item (boolean).", new Rune(readerSpan[consumedLength - 1])));
 
                         this._innerReader = this._innerReaders.BooleanReader;
                         break;
@@ -203,28 +203,28 @@ namespace JsonBourne.DocumentReader
                     case JsonTokens.Digit8:
                     case JsonTokens.Digit9:
                         if (this._expectedNext != ExpectedToken.Value)
-                            return _cleanup(this, ValueParseResult.Failure("Unexpected array item (number).", new Rune(readerSpan[consumedLength - 1])));
+                            return _cleanup(this, ValueParseResult.Failure("Unexpected object item (number).", new Rune(readerSpan[consumedLength - 1])));
 
                         this._innerReader = this._innerReaders.NumberReader;
                         break;
 
                     case JsonTokens.QuoteMark:
-                        if (this._expectedNext != ExpectedToken.Value && this._expectedNext != ExpectedToken.Key)
-                            return _cleanup(this, ValueParseResult.Failure("Unexpected array item (string).", new Rune(JsonTokens.QuoteMark)));
+                        if (this._expectedNext != ExpectedToken.Value && this._expectedNext != ExpectedToken.Key && this._expectedNext != ExpectedToken.KeyOrEnd)
+                            return _cleanup(this, ValueParseResult.Failure("Unexpected object item (string).", new Rune(JsonTokens.QuoteMark)));
 
                         this._innerReader = this._innerReaders.StringReader;
                         break;
 
                     case JsonTokens.OpeningBracket:
                         if (this._expectedNext != ExpectedToken.Value)
-                            return _cleanup(this, ValueParseResult.Failure("Unexpected array item (array).", new Rune(JsonTokens.OpeningBracket)));
+                            return _cleanup(this, ValueParseResult.Failure("Unexpected object item (array).", new Rune(JsonTokens.OpeningBracket)));
 
                         this._innerReader = new JsonArrayReader(this._innerReaders);
                         break;
 
                     case JsonTokens.OpeningBrace:
                         if (this._expectedNext != ExpectedToken.Value)
-                            return _cleanup(this, ValueParseResult.Failure("Unexpected array item (object).", new Rune(JsonTokens.OpeningBracket)));
+                            return _cleanup(this, ValueParseResult.Failure("Unexpected object item (object).", new Rune(JsonTokens.OpeningBracket)));
 
                         this._innerReader = new JsonObjectReader(this._innerReaders);
                         break;
@@ -233,7 +233,7 @@ namespace JsonBourne.DocumentReader
                         if (Rune.DecodeFromUtf8(readerSpan[(consumedLength - 1)..], out var rune, out _) != OperationStatus.Done)
                             rune = default;
 
-                        return _cleanup(this, ValueParseResult.Failure("Unexpected token while parsing array.", rune));
+                        return _cleanup(this, ValueParseResult.Failure("Unexpected token while parsing object.", rune));
                 }
 
                 // parsing done?
@@ -243,7 +243,7 @@ namespace JsonBourne.DocumentReader
                 // parse inner value
                 if (this._innerReader != null)
                 {
-                    var expectKey = this._expectedNext == ExpectedToken.Key;
+                    var expectKey = this._expectedNext == ExpectedToken.Key || this._expectedNext == ExpectedToken.KeyOrEnd;
                     var innerResult = _parseInner(readerSpan.Slice(consumedLength - 1), this._innerReader, out var innerValue, ref this._expectedNext, ref this._streamPos, ref this._lineSpan, ref this._colSpan, ref consumedLength);
                     switch (innerResult.Type)
                     {
@@ -375,7 +375,7 @@ namespace JsonBourne.DocumentReader
                         next = next switch
                         {
                             ExpectedToken.Value => ExpectedToken.ItemSeparatorOrEnd,
-                            ExpectedToken.Key => ExpectedToken.KvSeparator
+                            ExpectedToken.Key or ExpectedToken.KeyOrEnd => ExpectedToken.KvSeparator
                         };
                         return ValueParseResult.Success;
 
@@ -414,6 +414,7 @@ namespace JsonBourne.DocumentReader
             ItemSeparatorOrEnd,
             Value,
             Key,
+            KeyOrEnd,
             KvSeparator
         }
     }
