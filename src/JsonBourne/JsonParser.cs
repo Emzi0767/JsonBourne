@@ -32,6 +32,9 @@ namespace JsonBourne
     public sealed class JsonParser
     {
         public JsonValue Parse(ReadOnlyMemory<byte> input)
+            => this.Parse(input.Span);
+
+        public JsonValue Parse(ReadOnlySpan<byte> input)
         {
             throw new NotImplementedException();
         }

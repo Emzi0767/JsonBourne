@@ -389,5 +389,133 @@ namespace JsonBourne.Tests
                 return true;
             }
         }
+
+        [DataTestMethod]
+        [DataRow(new object[] { "inner", null, "num", 42.0, "str", "😒", "😒", true }, @"{""inner"": null, ""num"": 42, ""str"": ""😒"", ""😒"": true}")]
+        [DataRow(new object[] { "inner", null, "num", 42.0, "str", "😒", "😒", true }, @"{", @"""inner"": null, ""num"": 42, ""str"": ""😒"", ""😒"": true}")]
+        [DataRow(new object[] { "inner", null, "num", 42.0, "str", "😒", "😒", true }, @"{", @"""", @"inner"": null, ""num"": 42, ""str"": ""😒"", ""😒"": true}")]
+        [DataRow(new object[] { "inner", null, "num", 42.0, "str", "😒", "😒", true }, @"{""", @"inner"": nu", @"ll, ""num"": 42, ""str"": ""😒"", ""😒"": true}")]
+        [DataRow(new object[] { "inner", null, "num", 42.0, "str", "😒", "😒", true }, @"{""", @"inner"": nu", @"ll, ""num"": 4", @"2, ""s", @"tr"": ""😒"", ""😒", @""": tr", @"ue}")]
+        public void TestSimpleObjectParser(object[] expected, params string[] buffers)
+        {
+            var reader = new JsonObjectReader(new ValueReaderCollection());
+
+            var totalConsumed = 0;
+            foreach (var buffer in buffers)
+            {
+                var b = UTF8.GetBytes(buffer);
+
+                var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed, out _, out _);
+                totalConsumed += consumed;
+                switch (result.Type)
+                {
+                    case ValueParseResultType.Failure when expected != null:
+                        Assert.Fail("Failed to parse when failure was not expected.");
+                        return;
+
+                    case ValueParseResultType.Failure when expected == null:
+                        return;
+
+                    case ValueParseResultType.Success:
+                        Assert.AreEqual(expected.Length / 2, actual.Count);
+                        Assert.IsTrue(_validate(expected, actual));
+                        return;
+
+                    case ValueParseResultType.EOF:
+                        Assert.AreEqual(b.Length, consumed);
+                        break;
+                }
+            }
+
+            Assert.Inconclusive();
+
+            static bool _validate(object[] expected, IReadOnlyDictionary<string, JsonValue> actual)
+            {
+                if (expected.Length / 2 != actual.Count)
+                    return false;
+
+                for (var i = 0; i < expected.Length / 2; i++)
+                {
+                    var k = expected[i * 2] as string;
+                    var v = expected[i * 2 + 1];
+
+                    if (!actual.ContainsKey(k) || !actual[k].Equals(v))
+                        return false;
+                }
+
+                return true;
+            }
+        }
+
+        [DataTestMethod]
+        [DataRow(new object[] { "inner", new object[] { "joe", "mama", "so", "fat", "weight", "Inf" }, "num", 42.0, "str", "😒", "😒", true },
+            @"{""inner"": {""joe"": ""mama"", ""so"": ""fat"", ""weight"": ""Inf""}, ""num"": 42, ""str"": ""😒"", ""😒"": true}")]
+        [DataRow(new object[] { "inner", new object[] { "joe", "mama", "so", "fat", "weight", "Inf" }, "num", 42.0, "str", "😒", "😒", true, "bad", new object[] { "a", "c" } },
+            @"{""inner"": {""joe"": ""mama"", ""so"": ""fat"", ""weight"": ""Inf""}, ""num"": 42, ""str"": ""😒"", ""😒"": true, ""bad"": {""a"": ""b"", ""a"": ""c""}}")]
+        [DataRow(new object[] { "inner", new object[] { "joe", "mama", "so", "fat", "weight", "Inf" }, "num", 42.0, "str", "😒", "😒", true, "bad", new object[] { "a", "c" } },
+            @"{""inner"": ", @"{""joe"": ""mama"", ""so"": ""fat"", ""weight"": ""Inf""}, ""num"": 42, ""str"": ""😒"", ""😒"": true, ""bad"": {""a"": ""b"", ""a"": ""c""}}")]
+        [DataRow(new object[] { "inner", new object[] { "joe", "mama", "so", "fat", "weight", "Inf" }, "num", 42.0, "str", "😒", "😒", true, "bad", new object[] { "a", "c" } },
+            @"{""inner"": {", @"""joe"": ""mama""", @", ""so"": ""fat"", ""weight"": ""Inf""", @"}, ""num"": 42, ""str"": ""😒"", ""😒"": true, ""bad"": {""a"": ""b"", ""a"": ""c""}}")]
+        public void TestRecursiveObjectParser(object[] expected, params string[] buffers)
+        {
+            var reader = new JsonObjectReader(new ValueReaderCollection());
+
+            var totalConsumed = 0;
+            foreach (var buffer in buffers)
+            {
+                var b = UTF8.GetBytes(buffer);
+
+                var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed, out _, out _);
+                totalConsumed += consumed;
+                switch (result.Type)
+                {
+                    case ValueParseResultType.Failure when expected != null:
+                        Assert.Fail("Failed to parse when failure was not expected.");
+                        return;
+
+                    case ValueParseResultType.Failure when expected == null:
+                        return;
+
+                    case ValueParseResultType.Success:
+                        Assert.AreEqual(expected.Length / 2, actual.Count);
+                        Assert.IsTrue(_validate(expected, actual));
+                        return;
+
+                    case ValueParseResultType.EOF:
+                        Assert.AreEqual(b.Length, consumed);
+                        break;
+                }
+            }
+
+            Assert.Inconclusive();
+
+            static bool _validate(object[] expected, IReadOnlyDictionary<string, JsonValue> actual)
+            {
+                if (expected.Length / 2 != actual.Count)
+                    return false;
+
+                for (var i = 0; i < expected.Length / 2; i++)
+                {
+                    var k = expected[i * 2] as string;
+                    var v = expected[i * 2 + 1];
+
+                    if (v is object[] innerExpected)
+                    {
+                        if (actual[k] is not JsonObjectValue innerActual)
+                            return false;
+
+                        if (!_validate(innerExpected, innerActual.Value))
+                            return false;
+
+                        continue;
+                    }
+
+                    if (!actual.ContainsKey(k) || !actual[k].Equals(v))
+                        return false;
+                }
+
+                return true;
+            }
+        }
     }
 }

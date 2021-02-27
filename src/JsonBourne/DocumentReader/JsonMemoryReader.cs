@@ -21,67 +21,8 @@ using JsonBourne.DocumentModel;
 
 namespace JsonBourne.DocumentReader
 {
-    internal sealed class JsonMemoryReader : IEnumerator<JsonTokenEvent>
+    internal sealed class JsonMemoryReader
     {
-        public JsonTokenEvent Current { get; private set; } = JsonTokenEvent.None;
-
-        object IEnumerator.Current
-            => this.Current;
-
-        public int Position { get; private set; }
-        public int Line { get; private set; }
-        public int Column { get; private set; }
-        public int BufferPosition { get; private set; }
-
-        internal Memory<byte> Buffer
-        {
-            get => this._buff;
-            set
-            {
-                this.BufferPosition -= this._buff.Length + 1;
-                if (this.BufferPosition < -1)
-                    this.BufferPosition = -1;
-
-                this._buff = value;
-            }
-        }
-        private Memory<byte> LastToken { get; set; }
-
-        private Memory<byte> _buff;
-
-        public JsonMemoryReader()
-        {
-            this.Reset();
-        }
-
-        public bool MoveNext()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Advance(int amount, int lines, int cols)
-        {
-            this.Line += lines;
-            if (lines > 0)
-                this.Column = cols;
-            else
-                this.Column += cols;
-
-            this.BufferPosition += amount;
-            this.Position += amount;
-        }
-
-        public void Reset()
-        {
-            this.BufferPosition = -1;
-            this.Position = -1;
-            this.Column = -1;
-            this.Line = 0;
-            this.LastToken = default;
-            this.Current = JsonTokenEvent.None;
-        }
-
-        public void Dispose()
-            => this.Reset();
+        
     }
 }
