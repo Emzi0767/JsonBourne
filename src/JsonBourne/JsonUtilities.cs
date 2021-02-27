@@ -15,12 +15,18 @@
 // limitations under the License.
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace JsonBourne.DocumentReader
+namespace JsonBourne
 {
-    internal interface IJsonValueReader<T> : IDisposable
+    internal sealed class JsonUtilities
     {
-        ValueParseResult TryParse(ReadOnlyMemory<byte> buffer, out T result, out int consumedLength);
-        ValueParseResult TryParse(ReadOnlySpan<byte> buffer, out T result, out int consumedLength);
+        /// <summary>
+        /// Gets a properly-configured UTF-8 encoding.
+        /// </summary>
+        public static UTF8Encoding UTF8 { get; } = new UTF8Encoding(false);
     }
 }

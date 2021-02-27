@@ -25,7 +25,7 @@ namespace JsonBourne.DocumentReader
 
     internal sealed class JsonNumberReader : IJsonValueReader<double>
     {
-        private MemoryBuffer Buffer { get; set; }
+        private MemoryBuffer<byte> Buffer { get; set; }
 
         private NumberStructure _currentStructure = NumberStructure.None;
         private NumberPart _lastPart = NumberPart.None;
@@ -36,9 +36,10 @@ namespace JsonBourne.DocumentReader
         }
 
         public ValueParseResult TryParse(ReadOnlyMemory<byte> buffer, out double result, out int consumedLength)
-        {
-            var readerSpan = buffer.Span;
+            => this.TryParse(buffer.Span, out result, out consumedLength);
 
+        public ValueParseResult TryParse(ReadOnlySpan<byte> readerSpan, out double result, out int consumedLength)
+        {
             result = double.NaN;
             consumedLength = 0;
 
@@ -92,7 +93,7 @@ namespace JsonBourne.DocumentReader
                 var offByOne = false;
 
                 // try reading the number
-                while (consumedLength < buffer.Length)
+                while (consumedLength < readerSpan.Length)
                 {
                     switch (readerSpan[consumedLength++])
                     {
@@ -222,6 +223,16 @@ namespace JsonBourne.DocumentReader
             // in practice this will only happen on JSON that consists of a number value only at the root
             else
             {
+                // if last part is not a legal end to a number, fail
+                switch (this._lastPart)
+                {
+                    case NumberPart.NumberSign:
+                    case NumberPart.FractionDot:
+                    case NumberPart.ExponentMarker:
+                    case NumberPart.ExponentSign:
+                        return _cleanup(this, ValueParseResult.Failure);
+                }
+
                 completedParsing = true;
             }
 
@@ -257,25 +268,29 @@ namespace JsonBourne.DocumentReader
             else
             {
                 if (this.Buffer == null)
-                    this.Buffer = new MemoryBuffer(segmentSize: 128, initialSegmentCount: 1);
+                    this.Buffer = new MemoryBuffer<byte>(segmentSize: 128, initialSegmentCount: 1);
 
                 this.Buffer.Write(input.Slice(0, consumedLength));
                 return ValueParseResult.EOF;
             }
 
-            static ValueParseResult _cleanup(JsonNumberReader rdr, ValueParseResult result)
+            static ValueParseResult _cleanup(IDisposable rdr, ValueParseResult result)
             {
-                if (rdr.Buffer != null)
-                {
-                    rdr.Buffer.Dispose();
-                    rdr.Buffer = null;
-                }
-
-                rdr._currentStructure = NumberStructure.None;
-                rdr._lastPart = NumberPart.None;
-
+                rdr.Dispose();
                 return result;
             }
+        }
+
+        public void Dispose()
+        {
+            if (this.Buffer != null)
+            {
+                this.Buffer.Dispose();
+                this.Buffer = null;
+            }
+
+            this._currentStructure = NumberStructure.None;
+            this._lastPart = NumberPart.None;
         }
 
         [Flags]

@@ -33,15 +33,21 @@ namespace JsonBourne.DocumentReader
         }
 
         public ValueParseResult TryParse(ReadOnlyMemory<byte> buffer, out object result, out int consumedLength)
-        {
-            var readerSpan = buffer.Span;
+            => this.TryParse(buffer.Span, out result, out consumedLength);
 
+        public ValueParseResult TryParse(ReadOnlySpan<byte> readerSpan, out object result, out int consumedLength)
+        {
             result = null;
             consumedLength = 0;
 
-            // if span is empty, signal EOF immediately
+            // is input empty
             if (readerSpan.Length <= 0)
-                return ValueParseResult.EOF;
+            {
+                // did any prior processing occur
+                return this._buffPos > 0
+                    ? _cleanup(this, ValueParseResult.Failure)
+                    : ValueParseResult.EOF;
+            }
 
             // determine what we're reading
             var src = this._buffPos > 0 ? this.Buffer.Span : readerSpan;
@@ -77,6 +83,15 @@ namespace JsonBourne.DocumentReader
                 // tokens didn't match
                 _ => ValueParseResult.Failure,
             };
+
+            static ValueParseResult _cleanup(IDisposable rdr, ValueParseResult result)
+            {
+                rdr.Dispose();
+                return result;
+            }
         }
+
+        public void Dispose()
+            => this._buffPos = 0;
     }
 }

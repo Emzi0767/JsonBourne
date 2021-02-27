@@ -14,6 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
+using System.Linq;
 using System.Text;
 using JsonBourne.DocumentReader;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -44,7 +46,7 @@ namespace JsonBourne.Tests
             {
                 var b = UTF8.GetBytes(buffer);
 
-                var result = reader.TryParse(b, out var actual, out var consumed);
+                var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed);
                 totalConsumed += consumed;
                 switch (result)
                 {
@@ -85,7 +87,7 @@ namespace JsonBourne.Tests
             {
                 var b = UTF8.GetBytes(buffer);
 
-                var result = reader.TryParse(b, out var actual, out var consumed);
+                var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed);
                 totalConsumed += consumed;
                 switch (result)
                 {
@@ -146,7 +148,7 @@ namespace JsonBourne.Tests
             {
                 var b = UTF8.GetBytes(buffer);
 
-                result = reader.TryParse(b, out actual, out consumed);
+                result = reader.TryParse(b.AsMemory(), out actual, out consumed);
                 switch (result)
                 {
                     case ValueParseResult.Failure when expected != null:
@@ -166,7 +168,7 @@ namespace JsonBourne.Tests
                 }
             }
 
-            result = reader.TryParse(default, out actual, out consumed);
+            result = reader.TryParse(default(ReadOnlyMemory<byte>), out actual, out consumed);
             if ((result == ValueParseResult.Failure && expected != null) || (result == ValueParseResult.Success && expected == null))
                 Assert.Fail("Unexpected result");
 
@@ -180,6 +182,105 @@ namespace JsonBourne.Tests
             {
                 Assert.AreEqual(0, consumed);
                 return;
+            }
+
+            Assert.Inconclusive();
+        }
+
+        [DataTestMethod]
+        [DataRow("abc", @"""abc""")]
+        [DataRow("ab\nc", @"""ab\nc""")]
+        [DataRow("abc", @"""ab\u0063""")]
+        [DataRow("abc", @"""ab", @"\u0063""")]
+        [DataRow("abc😒", @"""ab", @"\u0063😒""")]
+        [DataRow("abc", @"""ab\", @"u0063""")]
+        [DataRow("ab\n", @"""ab\", @"n""")]
+        [DataRow("ab\n", @"""ab\", @"n", @"""")]
+        [DataRow("abc", @"""ab\", @"u", @"0063""")]
+        [DataRow("abcd", @"""ab\", @"u", @"0063d""")]
+        [DataRow("abcd", @"""ab\", @"u", @"0063", @"d""")]
+        [DataRow("abcd", @"""ab\u0", @"063", @"d""")]
+        [DataRow(null, @"ab", @"\u0063""")]
+        public void TestStringParser(string expected, params string[] buffers)
+        {
+            var reader = new JsonStringReader();
+
+            var totalConsumed = 0;
+            foreach (var buffer in buffers)
+            {
+                var b = UTF8.GetBytes(buffer);
+
+                var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed);
+                totalConsumed += consumed;
+                switch (result)
+                {
+                    case ValueParseResult.Failure when expected != null:
+                        Assert.Fail("Failed to parse when failure was not expected.");
+                        return;
+
+                    case ValueParseResult.Failure when expected == null:
+                        return;
+
+                    case ValueParseResult.Success:
+                        Assert.AreEqual(expected, actual);
+                        return;
+
+                    case ValueParseResult.EOF:
+                        Assert.AreEqual(b.Length, consumed);
+                        break;
+                }
+            }
+
+            Assert.Inconclusive();
+        }
+
+        [DataTestMethod]
+        [DataRow("abc", @"""ab\u0063""", 3)]
+        [DataRow("abc😒", @"""ab\u0063😒""", 3)]
+        [DataRow("abc😒", @"""ab\u0063😒""", 3, 9)]
+        [DataRow("abc😒", @"""ab\u0063😒""", 3, 10)]
+        [DataRow("abc😒", @"""ab\u0063😒""", 3, 9, 10)]
+        [DataRow("abc😒", @"""ab\u0063😒""", 3, 11)]
+        [DataRow("abc", @"""ab\u0063""", 4)]
+        [DataRow("ab\n", @"""ab\n""", 4)]
+        [DataRow("ab\n", @"""ab\n""", 4, 5)]
+        [DataRow("abc", @"""ab\u0063""", 4, 5)]
+        [DataRow("abcd", @"""ab\u0063d""", 4, 5)]
+        [DataRow("abcd", @"""ab\u0063d""", 4, 5, 9)]
+        [DataRow("abcd", @"""ab\u0063d""", 6, 9)]
+        public void TestUtf8StringParser(string expected, string input, params int[] slicePoints)
+        {
+            var allBuffer = UTF8.GetBytes(input);
+            var allBuffers = allBuffer.AsSpan();
+
+            var reader = new JsonStringReader();
+
+            var totalConsumed = 0;
+            var lpos = 0;
+            foreach (var slicePoint in slicePoints.Concat(new[] { allBuffer.Length }))
+            {
+                var b = allBuffers.Slice(lpos, slicePoint - lpos);
+                lpos = slicePoint;
+
+                var result = reader.TryParse(b, out var actual, out var consumed);
+                totalConsumed += consumed;
+                switch (result)
+                {
+                    case ValueParseResult.Failure when expected != null:
+                        Assert.Fail("Failed to parse when failure was not expected.");
+                        return;
+
+                    case ValueParseResult.Failure when expected == null:
+                        return;
+
+                    case ValueParseResult.Success:
+                        Assert.AreEqual(expected, actual);
+                        return;
+
+                    case ValueParseResult.EOF:
+                        Assert.AreEqual(b.Length, consumed);
+                        break;
+                }
             }
 
             Assert.Inconclusive();

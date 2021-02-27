@@ -47,10 +47,10 @@ namespace JsonBourne.DocumentModel
 
         public static StandardFormat FormatHex4 { get; } = StandardFormat.Parse("X4");
 
-        public static bool TryUnescape(ReadOnlySpan<byte> chars, Span<char> result, out int consumed)
+        public static bool TryUnescape(ReadOnlySpan<byte> chars, out char result, out int consumed)
         {
             consumed = 0;
-            result[0] = '\0';
+            result = '\0';
             if (chars[0] != ReverseSolidus)
                 return false;
 
@@ -58,23 +58,23 @@ namespace JsonBourne.DocumentModel
             switch (chars[1])
             {
                 case Backspace:
-                    result[0] = '\b';
+                    result = '\b';
                     return true;
 
                 case FormFeed:
-                    result[0] = '\f';
+                    result = '\f';
                     return true;
 
                 case LineFeed:
-                    result[0] = '\n';
+                    result = '\n';
                     return true;
 
                 case CarriageReturn:
-                    result[0] = '\r';
+                    result = '\r';
                     return true;
 
                 case HorizontalTab:
-                    result[0] = '\t';
+                    result = '\t';
                     return true;
 
                 case UnicodePrefix:
@@ -82,13 +82,13 @@ namespace JsonBourne.DocumentModel
                         return false;
 
                     consumed = 6;
-                    result[0] = (char)ch16;
+                    result = (char)ch16;
                     return true;
 
                 case QuoteMark:
                 case ReverseSolidus:
                 case Solidus:
-                    result[0] = (char)chars[1];
+                    result = (char)chars[1];
                     return true;
 
                 default:

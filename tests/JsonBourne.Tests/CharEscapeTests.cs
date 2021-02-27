@@ -50,15 +50,14 @@ namespace JsonBourne.Tests
         public void TestUnescape(string input, char expectedOutput, bool expectedResult)
         {
             var buff = UTF8.GetBytes(input);
-            var output = new char[1];
 
-            var escapeResult = JsonTokens.TryUnescape(buff, output, out var consumed);
+            var escapeResult = JsonTokens.TryUnescape(buff, out var output, out var consumed);
             Assert.AreEqual(expectedResult, escapeResult);
             if (!expectedResult)
                 return;
 
             Assert.AreEqual(input.Length, consumed);
-            Assert.AreEqual(expectedOutput, output[0]);
+            Assert.AreEqual(expectedOutput, output);
         }
     }
 }
