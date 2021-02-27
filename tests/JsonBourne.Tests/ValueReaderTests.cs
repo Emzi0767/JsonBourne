@@ -330,7 +330,7 @@ namespace JsonBourne.Tests
 
         [DataTestMethod]
         [DataRow(new object[] { null, false, 1.5, true, -1.0, "😒", new object[] { 2.0, "2.0", 4.0 }, 1.0, new object[] { true, true, false } },
-            "[\n\tnull,\n\tfalse,\n\t1.5,\n\ttrue,\n\t-1,\n\t\"😒\",\n\t[\n\t\t2.0,\n\t\t\"2.0\"\n\t],\n\t1.0,\n\t[\n\t\ttrue,\n\t\ttrue,\n\t\tfalse\n\t]\n]")]
+            "[\n\tnull,\n\tfalse,\n\t1.5,\n\ttrue,\n\t-1,\n\t\"😒\",\n\t[\n\t\t2.0,\n\t\t\"2.0\",\n\t\t4.0\n\t],\n\t1.0,\n\t[\n\t\ttrue,\n\t\ttrue,\n\t\tfalse\n\t]\n]")]
         public void TestRecursiveArrayParser(object[] expected, params string[] buffers)
         {
             var reader = new JsonArrayReader(new ValueReaderCollection());
@@ -378,6 +378,8 @@ namespace JsonBourne.Tests
 
                         if (!_validate(innerExpected, innerActual.Value))
                             return false;
+
+                        continue;
                     }
 
                     if (!actual[i].Equals(expected[i]))

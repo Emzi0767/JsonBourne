@@ -191,7 +191,7 @@ namespace JsonBourne.DocumentReader
 
                     case JsonTokens.OpeningBrace:
                         if (this._expectedNext != ExpectedToken.Value)
-                            return _cleanup(this, ValueParseResult.Failure("Unexpected array item (array).", new Rune(JsonTokens.OpeningBracket)));
+                            return _cleanup(this, ValueParseResult.Failure("Unexpected array item (object).", new Rune(JsonTokens.OpeningBracket)));
 
                         this._innerReader = new JsonObjectReader(this._innerReaders);
                         break;
