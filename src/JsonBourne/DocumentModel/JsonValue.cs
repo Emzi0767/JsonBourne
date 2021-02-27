@@ -15,12 +15,15 @@
 // limitations under the License.
 
 using System;
+using System.ComponentModel;
+using System.Diagnostics;
 
 namespace JsonBourne.DocumentModel
 {
     /// <summary>
     /// Represents a base JSON value.
     /// </summary>
+    [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public abstract class JsonValue : IEquatable<bool>, IEquatable<string>, IEquatable<double>, IEquatable<long>, IEquatable<ulong>, IEquatable<int>, IEquatable<uint>, IEquatable<JsonValue>
     {
         /// <summary>
@@ -28,6 +31,13 @@ namespace JsonBourne.DocumentModel
         /// </summary>
         public bool IsNull
             => this is JsonNullValue;
+
+        /// <summary>
+        /// Gets the debugger display of this JSON value.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public abstract string DebuggerDisplay { get; }
 
         internal JsonValue()
         { }
@@ -218,12 +228,21 @@ namespace JsonBourne.DocumentModel
     /// Represents a typed JSON value.
     /// </summary>
     /// <typeparam name="T">Type of the JSON value.</typeparam>
+    [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public abstract class JsonValue<T> : JsonValue
     {
         /// <summary>
         /// Gets the value associated with this JSON value.
         /// </summary>
         public virtual T Value { get; }
+
+        /// <summary>
+        /// Gets the debugger display of this JSON value.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public override string DebuggerDisplay
+            => $"JSON Value: {this.Value}";
 
         internal JsonValue(T value)
         {

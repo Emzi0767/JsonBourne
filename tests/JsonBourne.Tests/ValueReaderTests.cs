@@ -15,8 +15,10 @@
 // limitations under the License.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using JsonBourne.DocumentModel;
 using JsonBourne.DocumentReader;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -324,6 +326,66 @@ namespace JsonBourne.Tests
             }
 
             Assert.Inconclusive();
+        }
+
+        [DataTestMethod]
+        [DataRow(new object[] { null, false, 1.5, true, -1.0, "😒", new object[] { 2.0, "2.0", 4.0 }, 1.0, new object[] { true, true, false } },
+            "[\n\tnull,\n\tfalse,\n\t1.5,\n\ttrue,\n\t-1,\n\t\"😒\",\n\t[\n\t\t2.0,\n\t\t\"2.0\"\n\t],\n\t1.0,\n\t[\n\t\ttrue,\n\t\ttrue,\n\t\tfalse\n\t]\n]")]
+        public void TestRecursiveArrayParser(object[] expected, params string[] buffers)
+        {
+            var reader = new JsonArrayReader(new ValueReaderCollection());
+
+            var totalConsumed = 0;
+            foreach (var buffer in buffers)
+            {
+                var b = UTF8.GetBytes(buffer);
+
+                var result = reader.TryParse(b.AsMemory(), out var actual, out var consumed, out _, out _);
+                totalConsumed += consumed;
+                switch (result.Type)
+                {
+                    case ValueParseResultType.Failure when expected != null:
+                        Assert.Fail("Failed to parse when failure was not expected.");
+                        return;
+
+                    case ValueParseResultType.Failure when expected == null:
+                        return;
+
+                    case ValueParseResultType.Success:
+                        Assert.AreEqual(expected.Length, actual.Length);
+                        Assert.IsTrue(_validate(expected, actual));
+                        return;
+
+                    case ValueParseResultType.EOF:
+                        Assert.AreEqual(b.Length, consumed);
+                        break;
+                }
+            }
+
+            Assert.Inconclusive();
+
+            static bool _validate(object[] expected, IReadOnlyList<JsonValue> actual)
+            {
+                if (expected.Length != actual.Count)
+                    return false;
+
+                for (var i = 0; i < expected.Length; i++)
+                {
+                    if (expected[i] is object[] innerExpected)
+                    {
+                        if (actual[i] is not JsonArrayValue innerActual)
+                            return false;
+
+                        if (!_validate(innerExpected, innerActual.Value))
+                            return false;
+                    }
+
+                    if (!actual[i].Equals(expected[i]))
+                        return false;
+                }
+
+                return true;
+            }
         }
     }
 }

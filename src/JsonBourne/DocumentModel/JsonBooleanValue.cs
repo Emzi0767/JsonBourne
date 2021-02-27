@@ -14,6 +14,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.ComponentModel;
+using System.Diagnostics;
+
 namespace JsonBourne.DocumentModel
 {
     /// <summary>
@@ -30,6 +33,14 @@ namespace JsonBourne.DocumentModel
         /// Gets the false JSON value.
         /// </summary>
         public static JsonBooleanValue False { get; } = new JsonBooleanValue(false);
+
+        /// <summary>
+        /// Gets the debugger display of this JSON value.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public override string DebuggerDisplay
+            => $"JSON Value (boolean): {this.Value}";
 
         private JsonBooleanValue(bool val)
             : base(val)

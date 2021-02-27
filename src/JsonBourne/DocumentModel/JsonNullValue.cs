@@ -14,6 +14,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.ComponentModel;
+using System.Diagnostics;
+
 namespace JsonBourne.DocumentModel
 {
     /// <summary>
@@ -25,6 +28,14 @@ namespace JsonBourne.DocumentModel
         /// Gets the null JSON value.
         /// </summary>
         public static JsonNullValue Null { get; } = new JsonNullValue();
+
+        /// <summary>
+        /// Gets the debugger display of this JSON value.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public override string DebuggerDisplay
+            => "JSON Value (null): <null>";
 
         private JsonNullValue()
             : base(null)

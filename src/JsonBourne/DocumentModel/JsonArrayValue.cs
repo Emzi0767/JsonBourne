@@ -17,6 +17,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.ComponentModel;
+using System.Diagnostics;
 
 namespace JsonBourne.DocumentModel
 {
@@ -38,6 +40,14 @@ namespace JsonBourne.DocumentModel
         /// </summary>
         public int Count
             => this.Value.Count;
+
+        /// <summary>
+        /// Gets the debugger display of this JSON value.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public override string DebuggerDisplay
+            => $"JSON Value (array): {this.Count} children";
 
         internal JsonArrayValue(ImmutableArray<JsonValue> values)
             : base(values)

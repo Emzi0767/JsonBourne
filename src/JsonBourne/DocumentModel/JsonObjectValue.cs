@@ -16,6 +16,8 @@
 
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace JsonBourne.DocumentModel
@@ -50,6 +52,14 @@ namespace JsonBourne.DocumentModel
         /// </summary>
         public int Count
             => this.Value.Count;
+
+        /// <summary>
+        /// Gets the debugger display of this JSON value.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public override string DebuggerDisplay
+            => $"JSON Value (object): {this.Count} children";
 
         internal JsonObjectValue(IReadOnlyDictionary<string, JsonValue> values)
             : base(values)

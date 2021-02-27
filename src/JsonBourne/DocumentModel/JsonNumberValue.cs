@@ -14,6 +14,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System.ComponentModel;
+using System.Diagnostics;
+
 namespace JsonBourne.DocumentModel
 {
     /// <summary>
@@ -21,6 +24,14 @@ namespace JsonBourne.DocumentModel
     /// </summary>
     public sealed class JsonNumberValue : JsonValue<double>
     {
+        /// <summary>
+        /// Gets the debugger display of this JSON value.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public override string DebuggerDisplay
+            => $"JSON Value (number): {this.Value}";
+
         internal JsonNumberValue(double value)
             : base(value)
         { }
