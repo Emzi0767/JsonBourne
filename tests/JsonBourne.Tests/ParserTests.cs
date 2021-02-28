@@ -15,6 +15,9 @@
 // limitations under the License.
 
 using System;
+using System.IO;
+using System.Text.Json;
+using System.Threading.Tasks;
 using JsonBourne.DocumentModel;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -39,6 +42,90 @@ namespace JsonBourne.Tests
             var parser = new JsonParser();
             var jsonValue = parser.Parse(buff.AsSpan());
             this.Validate(expected, jsonValue);
+        }
+
+        [DataTestMethod]
+        [DataRow("dumpraw.json")]
+        [DataRow("dump.json")]
+        public async Task TestStreamParseAsync(string file)
+        {
+            JsonDocument reference;
+            using (var fs = File.OpenRead(file))
+            {
+                reference = await JsonDocument.ParseAsync(fs);
+            }
+
+            var jsonParser = new JsonParser();
+            JsonValue jsonValue;
+            using (var fs = File.OpenRead(file))
+                jsonValue = await jsonParser.ParseAsync(fs);
+
+            this.ValidateRecursive(reference.RootElement, jsonValue);
+        }
+
+        private void ValidateRecursive(JsonElement reference, JsonValue actual, string path = "")
+        {
+            if (actual is JsonObjectValue actualObject)
+            {
+                if (reference.ValueKind != JsonValueKind.Object)
+                    Assert.Fail($"Expected not object, got object '{path}'.");
+
+                foreach (var prop in reference.EnumerateObject())
+                {
+                    var (k, v) = (prop.Name, prop.Value);
+
+                    if (!actualObject.ContainsKey(k))
+                        Assert.Fail($"Missing key '{path}.{k}'.");
+
+                    this.ValidateRecursive(v, actualObject[k], path + "." + k);
+                }
+            }
+            else if (actual is JsonArrayValue actualArray)
+            {
+                if (reference.ValueKind != JsonValueKind.Array)
+                    Assert.Fail($"Expected not array, got array '{path}'.");
+
+                if (actualArray.Count != reference.GetArrayLength())
+                    Assert.Fail($"Array length mismatch '{path}'.");
+
+                for (var i = 0; i < reference.GetArrayLength(); i++)
+                    this.ValidateRecursive(reference[i], actualArray[i], path + ".[" + i + "]");
+            }
+            else if (actual is JsonNullValue)
+            {
+                if (reference.ValueKind != JsonValueKind.Null)
+                    Assert.Fail($"Expected not null, got null '{path}'.");
+
+                return;
+            }
+            else if (actual is JsonBooleanValue actualBoolean)
+            {
+                if (reference.ValueKind != JsonValueKind.True && reference.ValueKind != JsonValueKind.False)
+                    Assert.Fail($"Expected not bool, got bool '{path}'.");
+
+                if (!actualBoolean.Equals(reference.GetBoolean()))
+                    Assert.Fail($"Value mismatch '{path}'.");
+            }
+            else if (actual is JsonNumberValue actualNumber)
+            {
+                if (reference.ValueKind != JsonValueKind.Number)
+                    Assert.Fail($"Expected not number, got number '{path}'.");
+
+                if (!actualNumber.Equals(reference.GetDouble()))
+                    Assert.Fail($"Value mismatch '{path}'.");
+            }
+            else if (actual is JsonStringValue actualString)
+            {
+                if (reference.ValueKind != JsonValueKind.String)
+                    Assert.Fail($"Expected not string, got string '{path}'.");
+
+                if (!actualString.Equals(reference.GetString()))
+                    Assert.Fail($"Value mismatch '{path}'.");
+            }
+            else
+            {
+                Assert.Fail($"??? at '{path}'");
+            }
         }
 
         private void Validate(object expected, JsonValue actual)

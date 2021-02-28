@@ -45,4 +45,13 @@
     <ProjectReference Include="..\..\src\JsonBourne\JsonBourne.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="dump.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="dumpraw.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
