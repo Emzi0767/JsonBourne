@@ -33,7 +33,7 @@ namespace JsonBourne
     {
         public BenchmarkConfig()
         {
-            this.AddJob(Job.MediumRun
+            this.AddJob(Job.ShortRun
                 .WithRuntime(CoreRuntime.Core50)
                 .WithJit(Jit.RyuJit)
                 .WithPlatform(Platform.X64));
