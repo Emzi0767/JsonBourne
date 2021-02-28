@@ -27,7 +27,7 @@ namespace JsonBourne.DocumentReader
 
     internal sealed class JsonNumberReader : IJsonValueReader<double>
     {
-        private MemoryBuffer<byte> Buffer { get; set; }
+        private IMemoryBuffer<byte> Buffer { get; set; }
 
         private NumberStructure _currentStructure = NumberStructure.None;
         private NumberPart _lastPart = NumberPart.None;
@@ -284,7 +284,7 @@ namespace JsonBourne.DocumentReader
             else
             {
                 if (this.Buffer == null)
-                    this.Buffer = new MemoryBuffer<byte>(segmentSize: 128, initialSegmentCount: 1);
+                    this.Buffer = new ContinuousMemoryBuffer<byte>(initialSize: 128);
 
                 this.Buffer.Write(input.Slice(0, consumedLength));
                 return ValueParseResult.EOF;

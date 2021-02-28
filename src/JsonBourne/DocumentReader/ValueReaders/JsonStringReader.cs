@@ -78,7 +78,7 @@ namespace JsonBourne.DocumentReader
         // one outlined for multibytes, i.e. copy to buffer if boundary is crossed, then decode the buffer or slice
 
         private Memory<byte> Buffer { get; }
-        private MemoryBuffer<char> DecodedBuffer { get; set; }
+        private IMemoryBuffer<char> DecodedBuffer { get; set; }
 
         private int _buffPos;
         private ContentType _buffContent;
@@ -122,7 +122,7 @@ namespace JsonBourne.DocumentReader
                     return _cleanup(this, ValueParseResult.Failure("Unexpected token, expected \".", rune));
                 }
 
-                this.DecodedBuffer = new MemoryBuffer<char>(segmentSize: 2048, initialSegmentCount: 1);
+                this.DecodedBuffer = new ContinuousMemoryBuffer<char>(initialSize: 2048);
                 startPos = consumedLength;
             }
 
@@ -344,7 +344,7 @@ namespace JsonBourne.DocumentReader
                 return ValueParseResult.EOF;
             }
 
-            static bool _decode(ReadOnlySpan<byte> input, Span<char> output, MemoryBuffer<char> destination)
+            static bool _decode(ReadOnlySpan<byte> input, Span<char> output, IMemoryBuffer<char> destination)
             {
                 // in UTF-16, a rune can consist of one or two chars
                 // you have surrogate pairs that way (HiLo)

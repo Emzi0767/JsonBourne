@@ -32,10 +32,15 @@ namespace JsonBourne.Workbench
             }
 
             var jsonParser = new JsonParser();
-            var json = jsonParser.Parse(dataRaw.AsSpan());
+            for (var i = 0; i < 128; i++)
+            {
+                var json = jsonParser.Parse(dataRaw.AsSpan());
 
-            if (json is not JsonObjectValue jsonObject || jsonObject.Count <= 0)
-                throw new Exception("Failed to load.");
+                if (json is not JsonObjectValue jsonObject || jsonObject.Count <= 0)
+                    throw new Exception("Failed to load.");
+            }
+
+            Console.WriteLine("dun");
         }
     }
 }
