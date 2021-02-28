@@ -54,6 +54,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{E9
 		examples\01 - Basics.cs = examples\01 - Basics.cs
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsonBourne.Workbench", "tests\JsonBourne.Workbench\JsonBourne.Workbench.csproj", "{2E7E81E5-16CA-4471-86DC-DBE1E1503DCE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -72,6 +74,10 @@ Global
 		{E7782312-E13F-47D5-AD11-23A303B595FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E7782312-E13F-47D5-AD11-23A303B595FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E7782312-E13F-47D5-AD11-23A303B595FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2E7E81E5-16CA-4471-86DC-DBE1E1503DCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E7E81E5-16CA-4471-86DC-DBE1E1503DCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E7E81E5-16CA-4471-86DC-DBE1E1503DCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E7E81E5-16CA-4471-86DC-DBE1E1503DCE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -82,6 +88,7 @@ Global
 		{E7782312-E13F-47D5-AD11-23A303B595FD} = {84A30717-CA6F-46F7-80B0-C4C2D8581393}
 		{B9703FF9-EF21-436E-839C-94123FFEFA2A} = {2966DDB3-47F6-4EA5-85C5-6A7026DC76BF}
 		{FB272C5A-4A0A-49E7-9904-989BD99AA467} = {B9703FF9-EF21-436E-839C-94123FFEFA2A}
+		{2E7E81E5-16CA-4471-86DC-DBE1E1503DCE} = {84A30717-CA6F-46F7-80B0-C4C2D8581393}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1F005DFB-3EA5-486D-B2CC-CEA0F2C76284}

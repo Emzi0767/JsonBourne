@@ -53,7 +53,7 @@ namespace JsonBourne.DocumentReader
             // continue parsing?
             if (this._innerReader != null)
             {
-                var innerResult = _parseInner(readerSpan, this._innerReader, out result, ref this._streamPos, ref this._lineSpan, ref this._colSpan, ref consumedLength);
+                var innerResult = this.ParseInner(readerSpan, out result, ref consumedLength);
                 switch (innerResult.Type)
                 {
                     case ValueParseResultType.Success:
@@ -141,7 +141,7 @@ namespace JsonBourne.DocumentReader
                 // parsing done?
                 if (this._innerReader != null)
                 {
-                    var innerResult = _parseInner(readerSpan.Slice(consumedLength - 1), this._innerReader, out result, ref this._streamPos, ref this._lineSpan, ref this._colSpan, ref consumedLength);
+                    var innerResult = this.ParseInner(readerSpan[(consumedLength - 1)..], out result, ref consumedLength);
                     switch (innerResult.Type)
                     {
                         case ValueParseResultType.Success:
@@ -161,98 +161,6 @@ namespace JsonBourne.DocumentReader
 
             return _cleanup(this, ValueParseResult.FailureEOF);
 
-            static ValueParseResult _parseInner(ReadOnlySpan<byte> input, IJsonValueReader innerReader, out JsonValue resultValue, ref int pos, ref int line, ref int col, ref int consumed)
-            {
-                ValueParseResult innerResult;
-                int innerLineSpan = 1, innerColSpan = 0, innerConsumed = 0;
-                resultValue = null;
-                switch (innerReader)
-                {
-                    case JsonNullReader nullReader:
-                        {
-                            innerResult = nullReader.TryParse(input, out var innerResultValue, out innerConsumed, out innerLineSpan, out innerColSpan);
-                            if (innerResult.Type == ValueParseResultType.Success)
-                                resultValue = JsonNullValue.Null;
-                        }
-                        break;
-
-                    case JsonBooleanReader boolReader:
-                        {
-                            innerResult = boolReader.TryParse(input, out var innerResultValue, out innerConsumed, out innerLineSpan, out innerColSpan);
-                            if (innerResult.Type == ValueParseResultType.Success)
-                                resultValue = innerResultValue ? JsonBooleanValue.True : JsonBooleanValue.False;
-                        }
-                        break;
-
-                    case JsonNumberReader numberReader:
-                        {
-                            innerResult = numberReader.TryParse(input, out var innerResultValue, out innerConsumed, out innerLineSpan, out innerColSpan);
-                            if (innerResult.Type == ValueParseResultType.Success)
-                                resultValue = new JsonNumberValue(innerResultValue);
-                        }
-                        break;
-
-                    case JsonStringReader stringReader:
-                        {
-                            innerResult = stringReader.TryParse(input, out var innerResultValue, out innerConsumed, out innerLineSpan, out innerColSpan);
-                            if (innerResult.Type == ValueParseResultType.Success)
-                                resultValue = new JsonStringValue(innerResultValue);
-                        }
-                        break;
-
-                    case JsonArrayReader arrayReader:
-                        {
-                            innerResult = arrayReader.TryParse(input, out var innerResultValue, out innerConsumed, out innerLineSpan, out innerColSpan);
-                            if (innerResult.Type == ValueParseResultType.Success)
-                                resultValue = new JsonArrayValue(innerResultValue);
-                        }
-                        break;
-
-                    case JsonObjectReader objectReader:
-                        {
-                            innerResult = objectReader.TryParse(input, out var innerResultValue, out innerConsumed, out innerLineSpan, out innerColSpan);
-                            if (innerResult.Type == ValueParseResultType.Success)
-                                resultValue = new JsonObjectValue(innerResultValue);
-                        }
-                        break;
-
-                    default:
-                        return ValueParseResult.Failure("Unexpected inner reader type.", default);
-                }
-
-                pos += innerConsumed;
-                consumed += innerConsumed - 1;
-
-                switch (innerResult.Type)
-                {
-                    // inner parser failed
-                    case ValueParseResultType.Failure:
-                        line += innerLineSpan - 1;
-                        col = innerLineSpan > 1
-                            ? innerColSpan
-                            : col + innerColSpan;
-                        return innerResult.Enrich(pos, line - 1, col);
-
-                    // inner parser concluded its operation
-                    // append its result, advance state
-                    case ValueParseResultType.Success:
-                        line += innerLineSpan - 1;
-                        col = innerLineSpan > 1
-                            ? innerColSpan
-                            : col + innerColSpan;
-
-                        return ValueParseResult.Success;
-
-                    // inner parser ran out of input
-                    case ValueParseResultType.EOF:
-                        return ValueParseResult.EOF;
-                }
-
-                // inner parser is in an indeterminate state
-                // technically a soft error
-                return ValueParseResult.Indeterminate;
-            }
-
             static ValueParseResult _cleanup(IDisposable rdr, ValueParseResult result)
             {
                 rdr.Dispose();
@@ -267,6 +175,98 @@ namespace JsonBourne.DocumentReader
             this._lineSpan = 1;
             this._colSpan = 0;
             this._streamPos = 0;
+        }
+
+        private ValueParseResult ParseInner(ReadOnlySpan<byte> input, out JsonValue resultValue, ref int consumedBytes)
+        {
+            ValueParseResult innerResult;
+            int innerLineSpan, innerColSpan, innerConsumed;
+            resultValue = null;
+            switch (this._innerReader)
+            {
+                case JsonNullReader nullReader:
+                    {
+                        innerResult = nullReader.TryParse(input, out _, out innerConsumed, out innerLineSpan, out innerColSpan);
+                        if (innerResult.Type == ValueParseResultType.Success)
+                            resultValue = JsonNullValue.Null;
+                    }
+                    break;
+
+                case JsonBooleanReader boolReader:
+                    {
+                        innerResult = boolReader.TryParse(input, out var innerResultValue, out innerConsumed, out innerLineSpan, out innerColSpan);
+                        if (innerResult.Type == ValueParseResultType.Success)
+                            resultValue = innerResultValue ? JsonBooleanValue.True : JsonBooleanValue.False;
+                    }
+                    break;
+
+                case JsonNumberReader numberReader:
+                    {
+                        innerResult = numberReader.TryParse(input, out var innerResultValue, out innerConsumed, out innerLineSpan, out innerColSpan);
+                        if (innerResult.Type == ValueParseResultType.Success)
+                            resultValue = new JsonNumberValue(innerResultValue);
+                    }
+                    break;
+
+                case JsonStringReader stringReader:
+                    {
+                        innerResult = stringReader.TryParse(input, out var innerResultValue, out innerConsumed, out innerLineSpan, out innerColSpan);
+                        if (innerResult.Type == ValueParseResultType.Success)
+                            resultValue = new JsonStringValue(innerResultValue);
+                    }
+                    break;
+
+                case JsonArrayReader arrayReader:
+                    {
+                        innerResult = arrayReader.TryParse(input, out var innerResultValue, out innerConsumed, out innerLineSpan, out innerColSpan);
+                        if (innerResult.Type == ValueParseResultType.Success)
+                            resultValue = new JsonArrayValue(innerResultValue);
+                    }
+                    break;
+
+                case JsonObjectReader objectReader:
+                    {
+                        innerResult = objectReader.TryParse(input, out var innerResultValue, out innerConsumed, out innerLineSpan, out innerColSpan);
+                        if (innerResult.Type == ValueParseResultType.Success)
+                            resultValue = new JsonObjectValue(innerResultValue);
+                    }
+                    break;
+
+                default:
+                    return ValueParseResult.Failure("Unexpected inner reader type.", default);
+            }
+
+            this._streamPos += innerConsumed;
+            consumedBytes += innerConsumed - 1;
+
+            switch (innerResult.Type)
+            {
+                // inner parser failed
+                case ValueParseResultType.Failure:
+                    this._lineSpan += innerLineSpan - 1;
+                    this._colSpan = innerLineSpan > 1
+                        ? innerColSpan
+                        : this._colSpan + innerColSpan;
+                    return innerResult.Enrich(this._streamPos, this._lineSpan - 1, this._colSpan);
+
+                // inner parser concluded its operation
+                // append its result, advance state
+                case ValueParseResultType.Success:
+                    this._lineSpan += innerLineSpan - 1;
+                    this._colSpan = innerLineSpan > 1
+                        ? innerColSpan
+                        : this._colSpan + innerColSpan;
+
+                    return ValueParseResult.Success;
+
+                // inner parser ran out of input
+                case ValueParseResultType.EOF:
+                    return ValueParseResult.EOF;
+            }
+
+            // inner parser is in an indeterminate state
+            // technically a soft error
+            return ValueParseResult.Indeterminate;
         }
     }
 }
