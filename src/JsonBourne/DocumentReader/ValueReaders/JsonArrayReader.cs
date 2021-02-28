@@ -33,7 +33,7 @@ namespace JsonBourne.DocumentReader
         public JsonArrayReader(ValueReaderCollection valueReaders)
         {
             this._innerReaders = valueReaders;
-            this.Dispose(); // I mean really this just resets whatever internals
+            this.Reset(); // I mean really this just resets whatever internals
         }
 
         public ValueParseResult TryParse(ReadOnlyMemory<byte> buffer, out ImmutableArray<JsonValue> result, out int consumedLength, out int lineSpan, out int colSpan)
@@ -85,14 +85,13 @@ namespace JsonBourne.DocumentReader
                 switch (innerResult.Type)
                 {
                     case ValueParseResultType.Success:
-                        this._innerReader.Dispose();
+                        this._innerReader.Reset();
                         this._innerReader = null;
                         break;
 
                     case ValueParseResultType.EOF:
                         return innerResult;
 
-                    case ValueParseResultType.Intederminate:
                     case ValueParseResultType.Failure:
                         return _cleanup(this, innerResult);
                 }
@@ -214,14 +213,13 @@ namespace JsonBourne.DocumentReader
                     switch (innerResult.Type)
                     {
                         case ValueParseResultType.Success:
-                            this._innerReader.Dispose();
+                            this._innerReader.Reset();
                             this._innerReader = null;
                             break;
 
                         case ValueParseResultType.EOF:
                             return innerResult;
 
-                        case ValueParseResultType.Intederminate:
                         case ValueParseResultType.Failure:
                             return _cleanup(this, innerResult);
                     }
@@ -241,16 +239,22 @@ namespace JsonBourne.DocumentReader
                 return ValueParseResult.EOF;
             }
 
-            static ValueParseResult _cleanup(IDisposable rdr, ValueParseResult result)
+            static ValueParseResult _cleanup(IJsonValueReader rdr, ValueParseResult result)
             {
-                rdr.Dispose();
+                rdr.Reset();
                 return result;
             }
         }
 
         public void Dispose()
         {
-            this._innerReader?.Dispose();
+            this.Reset();
+            this._innerReaders.Dispose();
+        }
+
+        public void Reset()
+        {
+            this._innerReader?.Reset();
             this._innerReader = null;
             this._arr = null;
             this._streamPos = 0;
@@ -323,14 +327,6 @@ namespace JsonBourne.DocumentReader
 
             switch (innerResult.Type)
             {
-                // inner parser failed
-                case ValueParseResultType.Failure:
-                    this._lineSpan += innerLineSpan - 1;
-                    this._colSpan = innerLineSpan > 1
-                        ? innerColSpan
-                        : this._colSpan + innerColSpan;
-                    return innerResult.Enrich(this._streamPos, this._lineSpan - 1, this._colSpan);
-
                 // inner parser concluded its operation
                 // append its result, advance state
                 case ValueParseResultType.Success:
@@ -346,11 +342,16 @@ namespace JsonBourne.DocumentReader
                 // inner parser ran out of input
                 case ValueParseResultType.EOF:
                     return ValueParseResult.EOF;
-            }
 
-            // inner parser is in an indeterminate state
-            // technically a soft error
-            return ValueParseResult.Indeterminate;
+                // inner parser failed
+                case ValueParseResultType.Failure:
+                default:
+                    this._lineSpan += innerLineSpan - 1;
+                    this._colSpan = innerLineSpan > 1
+                        ? innerColSpan
+                        : this._colSpan + innerColSpan;
+                    return innerResult.Enrich(this._streamPos, this._lineSpan - 1, this._colSpan);
+            }
         }
 
         private enum ExpectedToken

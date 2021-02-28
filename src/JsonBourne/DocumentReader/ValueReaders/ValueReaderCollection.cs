@@ -14,11 +14,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
+
 namespace JsonBourne.DocumentReader
 {
     // this is so parsers can be reused - no point in destroying and creating them all over again
 
-    internal sealed class ValueReaderCollection
+    internal sealed class ValueReaderCollection : IDisposable
     {
         public JsonNullReader NullReader { get; } = new JsonNullReader();
         public JsonBooleanReader BooleanReader { get; } = new JsonBooleanReader();
@@ -27,5 +29,13 @@ namespace JsonBourne.DocumentReader
 
         public ValueReaderCollection()
         { }
+
+        public void Dispose()
+        {
+            this.NullReader.Dispose();
+            this.BooleanReader.Dispose();
+            this.NumberReader.Dispose();
+            this.StringReader.Dispose();
+        }
     }
 }

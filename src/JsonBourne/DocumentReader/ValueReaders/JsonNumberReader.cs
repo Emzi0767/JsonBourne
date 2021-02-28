@@ -27,14 +27,14 @@ namespace JsonBourne.DocumentReader
 
     internal sealed class JsonNumberReader : IJsonValueReader<double>
     {
-        private IMemoryBuffer<byte> Buffer { get; set; }
+        private IMemoryBuffer<byte> Buffer { get; }
 
         private NumberStructure _currentStructure = NumberStructure.None;
         private NumberPart _lastPart = NumberPart.None;
 
         public JsonNumberReader()
         {
-            this.Buffer = null;
+            this.Buffer = new ContinuousMemoryBuffer<byte>(initialSize: 128);
         }
 
         public ValueParseResult TryParse(ReadOnlyMemory<byte> buffer, out double result, out int consumedLength, out int lineSpan, out int colSpan)
@@ -52,7 +52,7 @@ namespace JsonBourne.DocumentReader
                 return ValueParseResult.EOF;
 
             // if we are not continuing, check what we're parsing
-            if (this.Buffer == null)
+            if (this.Buffer.Length == 0)
             {
                 switch (readerSpan[consumedLength++])
                 {
@@ -283,28 +283,26 @@ namespace JsonBourne.DocumentReader
             // no, store state and yield back
             else
             {
-                if (this.Buffer == null)
-                    this.Buffer = new ContinuousMemoryBuffer<byte>(initialSize: 128);
-
                 this.Buffer.Write(input.Slice(0, consumedLength));
                 return ValueParseResult.EOF;
             }
 
-            static ValueParseResult _cleanup(IDisposable rdr, ValueParseResult result)
+            static ValueParseResult _cleanup(IJsonValueReader rdr, ValueParseResult result)
             {
-                rdr.Dispose();
+                rdr.Reset();
                 return result;
             }
         }
 
         public void Dispose()
         {
-            if (this.Buffer != null)
-            {
-                this.Buffer.Dispose();
-                this.Buffer = null;
-            }
+            this.Reset();
+            this.Buffer.Dispose();
+        }
 
+        public void Reset()
+        {
+            this.Buffer.Clear();
             this._currentStructure = NumberStructure.None;
             this._lastPart = NumberPart.None;
         }

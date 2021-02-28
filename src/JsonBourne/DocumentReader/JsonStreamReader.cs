@@ -23,7 +23,7 @@ using JsonBourne.DocumentModel;
 
 namespace JsonBourne.DocumentReader
 {
-    internal sealed class JsonStreamReader
+    internal sealed class JsonStreamReader : IDisposable
     {
         private JsonDocumentReader Reader { get; } = new JsonDocumentReader();
 
@@ -60,7 +60,6 @@ namespace JsonBourne.DocumentReader
                             return jsonValue;
 
                         case ValueParseResultType.Failure:
-                        case ValueParseResultType.Intederminate:
                             throw new JsonParseException(parseResult.StreamPosition, parseResult.Line, parseResult.Column, parseResult.FailingRune, parseResult.Reason);
                     }
 
@@ -84,5 +83,8 @@ namespace JsonBourne.DocumentReader
                 _ => throw new JsonParseException(parseResult.StreamPosition, parseResult.Line, parseResult.Column, parseResult.FailingRune, parseResult.Reason),
             };
         }
+
+        public void Dispose()
+            => this.Reader.Dispose();
     }
 }

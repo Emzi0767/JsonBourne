@@ -22,7 +22,6 @@ namespace JsonBourne.DocumentReader
     {
         public static ValueParseResult Success { get; } = new ValueParseResult { Type = ValueParseResultType.Success };
         public static ValueParseResult EOF { get; } = new ValueParseResult { Type = ValueParseResultType.EOF, IsEOF = true };
-        public static ValueParseResult Indeterminate { get; } = new ValueParseResult { Type = ValueParseResultType.Intederminate };
         public static ValueParseResult FailureEOF { get; } = new ValueParseResult { Type = ValueParseResultType.Failure, Reason = "Unexpected EOF.", IsEOF = true };
 
         public ValueParseResultType Type { get; init; }
@@ -62,7 +61,6 @@ namespace JsonBourne.DocumentReader
     {
         Success,
         Failure,
-        EOF,
-        Intederminate
+        EOF
     }
 }

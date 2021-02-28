@@ -105,14 +105,17 @@ namespace JsonBourne.DocumentReader
                 _ => ValueParseResult.Failure("Unexpected token, expected true/false.", default),
             };
 
-            static ValueParseResult _cleanup(IDisposable rdr, ValueParseResult result)
+            static ValueParseResult _cleanup(IJsonValueReader rdr, ValueParseResult result)
             {
-                rdr.Dispose();
+                rdr.Reset();
                 return result;
             }
         }
 
         public void Dispose()
+            => this.Reset();
+
+        public void Reset()
             => this._buffPos = 0;
     }
 }

@@ -19,7 +19,9 @@ using System;
 namespace JsonBourne.DocumentReader
 {
     internal interface IJsonValueReader : IDisposable
-    { }
+    {
+        void Reset();
+    }
 
     internal interface IJsonValueReader<T> : IJsonValueReader
     {

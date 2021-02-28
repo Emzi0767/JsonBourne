@@ -78,16 +78,20 @@ namespace JsonBourne.DocumentReader
         // one outlined for multibytes, i.e. copy to buffer if boundary is crossed, then decode the buffer or slice
 
         private Memory<byte> Buffer { get; }
-        private IMemoryBuffer<char> DecodedBuffer { get; set; }
+        private IMemoryBuffer<char> DecodedBuffer { get; }
 
-        private int _buffPos;
+        private int _buffPos, _colSpan;
         private ContentType _buffContent;
+        private bool _inString;
 
         public JsonStringReader()
         {
             this.Buffer = new byte[6]; // up to 4 multibyte, up to 6 escape
+            this.DecodedBuffer = new ContinuousMemoryBuffer<char>(initialSize: 2048);
             this._buffPos = 0;
+            this._colSpan = 0;
             this._buffContent = ContentType.None;
+            this._inString = false;
         }
 
         public ValueParseResult TryParse(ReadOnlyMemory<byte> buffer, out string result, out int consumedLength, out int lineSpan, out int colSpan)
@@ -105,14 +109,14 @@ namespace JsonBourne.DocumentReader
             if (readerSpan.Length <= 0)
             {
                 // did any prior processing occur
-                return this.DecodedBuffer != null
+                return this._inString
                     ? _cleanup(this, ValueParseResult.FailureEOF)
                     : ValueParseResult.EOF;
             }
 
             // if we are not continuing, ensure it's a string that's being parsed
             var startPos = 0;
-            if (this.DecodedBuffer == null)
+            if (!this._inString)
             {
                 if (readerSpan[consumedLength++] != JsonTokens.QuoteMark)
                 {
@@ -122,8 +126,8 @@ namespace JsonBourne.DocumentReader
                     return _cleanup(this, ValueParseResult.Failure("Unexpected token, expected \".", rune));
                 }
 
-                this.DecodedBuffer = new ContinuousMemoryBuffer<char>(initialSize: 2048);
                 startPos = consumedLength;
+                this._inString = true;
             }
 
             // if continuing, check if anything is pending in the buffer
@@ -207,7 +211,7 @@ namespace JsonBourne.DocumentReader
                     blen = consumedLength - startPos - 1;
                     if (blen > 0)
                     {
-                        if (!_decode(readerSpan.Slice(startPos, blen), decoded, this.DecodedBuffer))
+                        if (!this.DecodeInternal(readerSpan.Slice(startPos, blen), decoded))
                             return _cleanup(this, ValueParseResult.Failure("Invalid UTF-8 sequence.", new Rune('"')));
                     }
 
@@ -227,7 +231,7 @@ namespace JsonBourne.DocumentReader
                     blen = consumedLength - startPos - 1;
                     if (blen > 0)
                     {
-                        if (!_decode(readerSpan.Slice(startPos, blen), decoded, this.DecodedBuffer))
+                        if (!this.DecodeInternal(readerSpan.Slice(startPos, blen), decoded))
                             return _cleanup(this, ValueParseResult.Failure("Invalid UTF-8 sequence.", new Rune('\\')));
                     }
 
@@ -276,11 +280,9 @@ namespace JsonBourne.DocumentReader
                         return _cleanup(this, ValueParseResult.Failure("Illegal control character.", new Rune(b)));
 
                     // legal, carry on
-                    continue;
                 }
-
                 // is multibyte
-                if ((b & MultibyteMask) != 0)
+                else
                 {
                     // determine how many bytes
                     int seqLen;
@@ -300,7 +302,7 @@ namespace JsonBourne.DocumentReader
                         blen = consumedLength - startPos - 1;
                         if (blen > 0)
                         {
-                            if (!_decode(readerSpan.Slice(startPos, blen), decoded, this.DecodedBuffer))
+                            if (!this.DecodeInternal(readerSpan.Slice(startPos, blen), decoded))
                                 return _cleanup(this, ValueParseResult.Failure("Invalid UTF-8 sequence.", default));
                         }
 
@@ -328,7 +330,7 @@ namespace JsonBourne.DocumentReader
             if (completedParsing)
             {
                 result = string.Create((int)this.DecodedBuffer.Count, this.DecodedBuffer, static (@out, @in) => @in.Read(@out, 0, out var written));
-                colSpan = result.EnumerateRunes().Count() + 2;
+                colSpan = this._colSpan;
                 return _cleanup(this, ValueParseResult.Success);
             }
             // no, store state and yield back
@@ -337,61 +339,66 @@ namespace JsonBourne.DocumentReader
                 blen = consumedLength - startPos;
                 if (blen > 0)
                 {
-                    if (!_decode(readerSpan[startPos..], decoded, this.DecodedBuffer))
+                    if (!this.DecodeInternal(readerSpan[startPos..], decoded))
                         return _cleanup(this, ValueParseResult.Failure("Invalid UTF-8 sequence.", default));
                 }
 
                 return ValueParseResult.EOF;
             }
 
-            static bool _decode(ReadOnlySpan<byte> input, Span<char> output, IMemoryBuffer<char> destination)
+            static ValueParseResult _cleanup(IJsonValueReader rdr, ValueParseResult result)
             {
-                // in UTF-16, a rune can consist of one or two chars
-                // you have surrogate pairs that way (HiLo)
-                // 
-                // in UTF-8, the most bytes per rune is 4, and that can result in 1 or 2 UTF-16 characters
-                // in terms of single-byte characters, these all form one-char rune each
-                // two-char sequences can only result from 2-4 UTF-8 bytes, meaning we have 1 output per 2-4 inputs
-                // so highest output:input ratio is 1:1
-
-                // short buffer, do on the stack
-                if (input.Length < output.Length)
-                {
-                    if (Utf8.ToUtf16(input, output, out var c, out var e) != OperationStatus.Done || c != input.Length)
-                        return false;
-
-                    destination.Write(output.Slice(0, e));
-                }
-                // long buffer, go through heap
-                else
-                {
-                    using var mem = MemoryPool<char>.Shared.Rent(JsonUtilities.UTF8.GetMaxCharCount(input.Length));
-                    if (Utf8.ToUtf16(input, mem.Memory.Span, out var c, out var e) != OperationStatus.Done || c != input.Length)
-                        return false;
-
-                    destination.Write(mem.Memory.Slice(0, e).Span);
-                }
-
-                return true;
-            }
-
-            static ValueParseResult _cleanup(IDisposable rdr, ValueParseResult result)
-            {
-                rdr.Dispose();
+                rdr.Reset();
                 return result;
             }
         }
 
         public void Dispose()
         {
-            if (this.DecodedBuffer != null)
+            this.Reset();
+            this.DecodedBuffer.Dispose();
+        }
+
+        public void Reset()
+        {
+            this.DecodedBuffer.Clear();
+            this._buffPos = 0;
+            this._colSpan = 0;
+            this._buffContent = ContentType.None;
+            this._inString = false;
+        }
+
+        private bool DecodeInternal(ReadOnlySpan<byte> input, Span<char> output)
+        {
+            // in UTF-16, a rune can consist of one or two chars
+            // you have surrogate pairs that way (HiLo)
+            // 
+            // in UTF-8, the most bytes per rune is 4, and that can result in 1 or 2 UTF-16 characters
+            // in terms of single-byte characters, these all form one-char rune each
+            // two-char sequences can only result from 2-4 UTF-8 bytes, meaning we have 1 output per 2-4 inputs
+            // so highest output:input ratio is 1:1
+
+            // short buffer, do on the stack
+            if (input.Length < output.Length)
             {
-                this.DecodedBuffer.Dispose();
-                this.DecodedBuffer = null;
+                if (Utf8.ToUtf16(input, output, out var c, out var e) != OperationStatus.Done || c != input.Length)
+                    return false;
+
+                this.DecodedBuffer.Write(output.Slice(0, e));
+                this._colSpan += e;
+            }
+            // long buffer, go through heap
+            else
+            {
+                using var mem = MemoryPool<char>.Shared.Rent(JsonUtilities.UTF8.GetMaxCharCount(input.Length));
+                if (Utf8.ToUtf16(input, mem.Memory.Span, out var c, out var e) != OperationStatus.Done || c != input.Length)
+                    return false;
+
+                this.DecodedBuffer.Write(mem.Memory.Slice(0, e).Span);
+                this._colSpan += e;
             }
 
-            this._buffPos = 0;
-            this._buffContent = ContentType.None;
+            return true;
         }
 
         private enum ContentType
