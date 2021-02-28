@@ -17,6 +17,7 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
@@ -91,6 +92,16 @@ namespace JsonBourne
                 throw new Exception("Failed to load.");
         }
 
+        [Benchmark(Baseline = false, Description = "STJ.raw.file"), BenchmarkCategory("Deserialize file raw stream")]
+        public async Task DeserializeRawFileSTJAsync()
+        {
+            using var fs = File.OpenRead("dumpraw.json");
+            var json = await JsonDocument.ParseAsync(fs);
+
+            if (json.RootElement.ValueKind != JsonValueKind.Object)
+                throw new Exception("Failed to load.");
+        }
+
         [Benchmark(Baseline = true, Description = "Json.NET.raw.buff"), BenchmarkCategory("Deserialize file raw buffer")]
         public void DeserializeRawBufferJsonNet()
         {
@@ -106,6 +117,15 @@ namespace JsonBourne
             var json = jsonParser.Parse(this.DataRaw.AsSpan());
 
             if (json is not JsonObjectValue jsonObject || jsonObject.Count <= 0)
+                throw new Exception("Failed to load.");
+        }
+
+        [Benchmark(Baseline = false, Description = "STJ.raw.buff"), BenchmarkCategory("Deserialize file raw buffer")]
+        public void DeserializeRawBufferSTJ()
+        {
+            var json = JsonDocument.Parse(this.DataRaw.AsMemory());
+
+            if (json.RootElement.ValueKind != JsonValueKind.Object)
                 throw new Exception("Failed to load.");
         }
 
@@ -132,6 +152,16 @@ namespace JsonBourne
                 throw new Exception("Failed to load.");
         }
 
+        [Benchmark(Baseline = false, Description = "STJ.formatted.file"), BenchmarkCategory("Deserialize file formatted stream")]
+        public async Task DeserializeFormattedFileSTJAsync()
+        {
+            using var fs = File.OpenRead("dump.json");
+            var json = await JsonDocument.ParseAsync(fs);
+
+            if (json.RootElement.ValueKind != JsonValueKind.Object)
+                throw new Exception("Failed to load.");
+        }
+
         [Benchmark(Baseline = true, Description = "Json.NET.formatted.buff"), BenchmarkCategory("Deserialize file formatted buffer")]
         public void DeserializeFormattedBufferJsonNet()
         {
@@ -147,6 +177,15 @@ namespace JsonBourne
             var json = jsonParser.Parse(this.DataFormatted.AsSpan());
 
             if (json is not JsonObjectValue jsonObject || jsonObject.Count <= 0)
+                throw new Exception("Failed to load.");
+        }
+
+        [Benchmark(Baseline = false, Description = "STJ.formatted.buff"), BenchmarkCategory("Deserialize file formatted buffer")]
+        public void DeserializeFormattedBufferSTJ()
+        {
+            var json = JsonDocument.Parse(this.DataFormatted.AsMemory());
+
+            if (json.RootElement.ValueKind != JsonValueKind.Object)
                 throw new Exception("Failed to load.");
         }
 
@@ -196,6 +235,26 @@ namespace JsonBourne
             }
         }
 
+        [Benchmark(Baseline = false, Description = "STJ.both.file"), BenchmarkCategory("Deserialize file both stream")]
+        public async Task DeserializeBothFileSTJAsync()
+        {
+            using (var fs = File.OpenRead("dumpraw.json"))
+            {
+                var json = await JsonDocument.ParseAsync(fs);
+
+                if (json.RootElement.ValueKind != JsonValueKind.Object)
+                    throw new Exception("Failed to load.");
+            }
+
+            using (var fs = File.OpenRead("dump.json"))
+            {
+                var json = await JsonDocument.ParseAsync(fs);
+
+                if (json.RootElement.ValueKind != JsonValueKind.Object)
+                    throw new Exception("Failed to load.");
+            }
+        }
+
         [Benchmark(Baseline = true, Description = "Json.NET.both.buff"), BenchmarkCategory("Deserialize file both buffer")]
         public void DeserializeBothBufferJsonNet()
         {
@@ -219,6 +278,20 @@ namespace JsonBourne
 
             json = jsonParser.Parse(this.DataFormatted.AsSpan());
             if (json is not JsonObjectValue jsonObject2 || jsonObject2.Count <= 0)
+                throw new Exception("Failed to load.");
+        }
+
+        [Benchmark(Baseline = false, Description = "STJ.both.buff"), BenchmarkCategory("Deserialize file both buffer")]
+        public void DeserializeBothBufferSTJ()
+        {
+            var json = JsonDocument.Parse(this.DataRaw.AsMemory());
+
+            if (json.RootElement.ValueKind != JsonValueKind.Object)
+                throw new Exception("Failed to load.");
+
+            json = JsonDocument.Parse(this.DataFormatted.AsMemory());
+
+            if (json.RootElement.ValueKind != JsonValueKind.Object)
                 throw new Exception("Failed to load.");
         }
     }
