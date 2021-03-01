@@ -27,7 +27,7 @@ namespace JsonBourne
     /// <summary>
     /// Parses a JSON document and creates parsed JSON document trees. This class accepts UTF-8 inputs only. This class is not thread-safe.
     /// </summary>
-    public sealed class JsonParser
+    public sealed class JsonParser : IDisposable
     {
         private JsonStreamReader StreamReader { get; set; }
         private JsonMemoryReader MemoryReader { get; set; }
@@ -62,6 +62,15 @@ namespace JsonBourne
         {
             var jsonReader = this.StreamReader ??= new JsonStreamReader();
             return await jsonReader.ParseJsonAsync(inputStream, memoryPool, cancellationToken);
+        }
+
+        /// <summary>
+        /// Releases all resources used by this parser.
+        /// </summary>
+        public void Dispose()
+        {
+            this.MemoryReader?.Dispose();
+            this.StreamReader?.Dispose();
         }
     }
 }

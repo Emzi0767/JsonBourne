@@ -39,7 +39,7 @@ namespace JsonBourne.Tests
         [DataRow(null, 0, "null")]
         public void TestBooleanParser(bool? expected, int expectedLength, params string[] buffers)
         {
-            var reader = new JsonBooleanReader();
+            using var reader = new JsonBooleanReader();
 
             var totalConsumed = 0;
             foreach (var buffer in buffers)
@@ -80,7 +80,7 @@ namespace JsonBourne.Tests
         [DataRow(false, "false")]
         public void TestNullParser(bool successExpected, params string[] buffers)
         {
-            var reader = new JsonNullReader();
+            using var reader = new JsonNullReader();
 
             var totalConsumed = 0;
             foreach (var buffer in buffers)
@@ -141,7 +141,7 @@ namespace JsonBourne.Tests
         [DataRow(132.0e7, "132", "E+07\n")]
         public void TestNumberParser(double? expected, params string[] buffers)
         {
-            var reader = new JsonNumberReader();
+            using var reader = new JsonNumberReader();
 
             double actual; int consumed; ValueParseResult result;
             foreach (var buffer in buffers)
@@ -203,7 +203,7 @@ namespace JsonBourne.Tests
         [DataRow(null, @"ab", @"\u0063""")]
         public void TestStringParser(string expected, params string[] buffers)
         {
-            var reader = new JsonStringReader();
+            using var reader = new JsonStringReader();
 
             var totalConsumed = 0;
             foreach (var buffer in buffers)
@@ -253,7 +253,7 @@ namespace JsonBourne.Tests
             var allBuffer = JsonUtilities.UTF8.GetBytes(input);
             var allBuffers = allBuffer.AsSpan();
 
-            var reader = new JsonStringReader();
+            using var reader = new JsonStringReader();
 
             var totalConsumed = 0;
             var lpos = 0;
@@ -295,7 +295,7 @@ namespace JsonBourne.Tests
         [DataRow(new object[] { }, "[]")]
         public void TestSimpleArrayParser(object[] expected, params string[] buffers)
         {
-            var reader = new JsonArrayReader(new ValueReaderCollection());
+            using var reader = new JsonArrayReader(new ValueReaderCollection());
 
             var totalConsumed = 0;
             foreach (var buffer in buffers)
@@ -332,7 +332,7 @@ namespace JsonBourne.Tests
             "[\n\tnull,\n\tfalse,\n\t1.5,\n\ttrue,\n\t-1,\n\t\"😒\",\n\t[\n\t\t2.0,\n\t\t\"2.0\",\n\t\t4.0\n\t],\n\t1.0,\n\t[\n\t\ttrue,\n\t\ttrue,\n\t\tfalse\n\t]\n]")]
         public void TestRecursiveArrayParser(object[] expected, params string[] buffers)
         {
-            var reader = new JsonArrayReader(new ValueReaderCollection());
+            using var reader = new JsonArrayReader(new ValueReaderCollection());
 
             var totalConsumed = 0;
             foreach (var buffer in buffers)
@@ -398,7 +398,7 @@ namespace JsonBourne.Tests
         [DataRow(new object[] { }, "{}")]
         public void TestSimpleObjectParser(object[] expected, params string[] buffers)
         {
-            var reader = new JsonObjectReader(new ValueReaderCollection());
+            using var reader = new JsonObjectReader(new ValueReaderCollection());
 
             var totalConsumed = 0;
             foreach (var buffer in buffers)
@@ -458,7 +458,7 @@ namespace JsonBourne.Tests
             @"{""inner"": {", @"""joe"": ""mama""", @", ""so"": ""fat"", ""weight"": ""Inf""", @"}, ""num"": 42, ""str"": ""😒"", ""😒"": true, ""bad"": {""a"": ""b"", ""a"": ""c""}}")]
         public void TestRecursiveObjectParser(object[] expected, params string[] buffers)
         {
-            var reader = new JsonObjectReader(new ValueReaderCollection());
+            using var reader = new JsonObjectReader(new ValueReaderCollection());
 
             var totalConsumed = 0;
             foreach (var buffer in buffers)

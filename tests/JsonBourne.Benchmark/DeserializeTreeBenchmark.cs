@@ -21,25 +21,12 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
-using BenchmarkDotNet.Environments;
-using BenchmarkDotNet.Jobs;
 using JsonBourne.DocumentModel;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace JsonBourne
 {
-    public sealed class BenchmarkConfig : ManualConfig
-    {
-        public BenchmarkConfig()
-        {
-            this.AddJob(Job.ShortRun
-                .WithRuntime(CoreRuntime.Core50)
-                .WithJit(Jit.RyuJit)
-                .WithPlatform(Platform.X64));
-        }
-    }
-
     [Config(typeof(BenchmarkConfig)), MemoryDiagnoser, CategoriesColumn, GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]
     public abstract class DeserializeTreeBenchmark
     {
@@ -85,7 +72,7 @@ namespace JsonBourne
         public async Task DeserializeRawFileJsonBourneAsync()
         {
             using var fs = File.OpenRead("dumpraw.json");
-            var jsonParser = new JsonParser();
+            using var jsonParser = new JsonParser();
             var json = await jsonParser.ParseAsync(fs);
 
             if (json is not JsonObjectValue jsonObject || jsonObject.Count <= 0)
@@ -113,7 +100,7 @@ namespace JsonBourne
         [Benchmark(Baseline = false, Description = "JsonBourne.raw.buff"), BenchmarkCategory("Deserialize file raw buffer")]
         public void DeserializeRawBufferJsonBourne()
         {
-            var jsonParser = new JsonParser();
+            using var jsonParser = new JsonParser();
             var json = jsonParser.Parse(this.DataRaw.AsSpan());
 
             if (json is not JsonObjectValue jsonObject || jsonObject.Count <= 0)
@@ -145,7 +132,7 @@ namespace JsonBourne
         public async Task DeserializeFormattedFileJsonBourneAsync()
         {
             using var fs = File.OpenRead("dump.json");
-            var jsonParser = new JsonParser();
+            using var jsonParser = new JsonParser();
             var json = await jsonParser.ParseAsync(fs);
 
             if (json is not JsonObjectValue jsonObject || jsonObject.Count <= 0)
@@ -173,7 +160,7 @@ namespace JsonBourne
         [Benchmark(Baseline = false, Description = "JsonBourne.formatted.buff"), BenchmarkCategory("Deserialize file formatted buffer")]
         public void DeserializeFormattedBufferJsonBourne()
         {
-            var jsonParser = new JsonParser();
+            using var jsonParser = new JsonParser();
             var json = jsonParser.Parse(this.DataFormatted.AsSpan());
 
             if (json is not JsonObjectValue jsonObject || jsonObject.Count <= 0)
@@ -216,7 +203,7 @@ namespace JsonBourne
         [Benchmark(Baseline = false, Description = "JsonBourne.both.file"), BenchmarkCategory("Deserialize file both stream")]
         public async Task DeserializeBothFileJsonBourneAsync()
         {
-            var jsonParser = new JsonParser();
+            using var jsonParser = new JsonParser();
 
             using (var fs = File.OpenRead("dumpraw.json"))
             {
@@ -270,7 +257,7 @@ namespace JsonBourne
         [Benchmark(Baseline = false, Description = "JsonBourne.both.buff"), BenchmarkCategory("Deserialize file both buffer")]
         public void DeserializeBothBufferJsonBourne()
         {
-            var jsonParser = new JsonParser();
+            using var jsonParser = new JsonParser();
 
             var json = jsonParser.Parse(this.DataRaw.AsSpan());
             if (json is not JsonObjectValue jsonObject || jsonObject.Count <= 0)

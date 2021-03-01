@@ -39,7 +39,7 @@ namespace JsonBourne.Tests
         public void TestBufferParse(object expected, string buffer)
         {
             var buff = JsonUtilities.UTF8.GetBytes(buffer);
-            var parser = new JsonParser();
+            using var parser = new JsonParser();
             var jsonValue = parser.Parse(buff.AsSpan());
             this.Validate(expected, jsonValue);
         }
@@ -55,7 +55,7 @@ namespace JsonBourne.Tests
                 reference = await JsonDocument.ParseAsync(fs);
             }
 
-            var jsonParser = new JsonParser();
+            using var jsonParser = new JsonParser();
             JsonValue jsonValue;
             using (var fs = File.OpenRead(file))
                 jsonValue = await jsonParser.ParseAsync(fs);
